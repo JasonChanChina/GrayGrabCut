@@ -1,6 +1,6 @@
 //#include "opencv2/highgui/highgui.hpp"
 //#include "opencv2/imgproc/imgproc.hpp"
-#include "grayGrabCut.h"
+#include "grabcut.h"
 #include <iostream>
 
 using namespace std;
@@ -297,7 +297,7 @@ static void on_mouse( int event, int x, int y, int flags, void* param )
     gcapp.mouseClick( event, x, y, flags, param );
 }
 
-int main22( int argc, char** argv )
+int main2( int argc, char** argv )
 {
     if( argc!=2 )
     {
