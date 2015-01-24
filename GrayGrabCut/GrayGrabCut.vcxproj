@@ -145,12 +145,13 @@
   <ItemGroup>
     <ClInclude Include="gcgraph.hpp" />
     <ClInclude Include="GMM.h" />
-    <ClInclude Include="grabcut.h" />
+    <ClInclude Include="grayGrabCut.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GMM.cpp" />
-    <ClCompile Include="grabcut.cpp" />
+    <ClCompile Include="grayGrabCut.cpp" />
+    <ClCompile Include="mexGrabCut.cpp" />
     <ClCompile Include="TestGrabCut.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

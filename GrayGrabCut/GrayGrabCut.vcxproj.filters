@@ -21,10 +21,10 @@
     <ClInclude Include="GMM.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="grabcut.h">
+    <ClInclude Include="stdafx.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="stdafx.h">
+    <ClInclude Include="grayGrabCut.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -32,10 +32,13 @@
     <ClCompile Include="GMM.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="grabcut.cpp">
+    <ClCompile Include="TestGrabCut.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="TestGrabCut.cpp">
+    <ClCompile Include="mexGrabCut.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="grayGrabCut.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
