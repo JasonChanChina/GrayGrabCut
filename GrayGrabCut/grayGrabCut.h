@@ -2,13 +2,14 @@
 #pragma once
 
 #include "stdafx.h"
+
 #include "GMM.h"
 #include "gcgraph.hpp"
-#include <limits>
 
 
 
-class GrabCut
+
+class GrayGrabCut
 {
 public:
 	double calcBeta(const Mat& img);
@@ -22,7 +23,7 @@ public:
                        const Mat& leftW, const Mat& upleftW, const Mat& upW, const Mat& uprightW,
                        GCGraph<double>& graph );
 	void estimateSegmentation( GCGraph<double>& graph, Mat& mask );
-	void grabCut( InputArray _img, InputOutputArray _mask, Rect rect,
+	void graygrabCut( InputArray _img, InputOutputArray _mask, Rect rect,
                   InputOutputArray _bgdModel, InputOutputArray _fgdModel,
                   int iterCount, int mode=GC_EVAL );
 

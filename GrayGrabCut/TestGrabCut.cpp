@@ -1,6 +1,6 @@
 //#include "opencv2/highgui/highgui.hpp"
 //#include "opencv2/imgproc/imgproc.hpp"
-#include "grabcut.h"
+#include "GrayGrabcut.h"
 #include <iostream>
 
 using namespace std;
@@ -73,7 +73,7 @@ private:
     Rect rect;
     vector<Point> fgdPxls, bgdPxls, prFgdPxls, prBgdPxls;
     int iterCount;
-	GrabCut grab;
+	GrayGrabCut grab;
 };
 
 void GCApplication::reset()
@@ -263,16 +263,16 @@ int GCApplication::nextIter()
 {
 	double begin = (double)getTickCount();
     if( isInitialized )
-		grab.grabCut( *image, mask, rect, bgdModel, fgdModel, 1 );
+		grab.graygrabCut( *image, mask, rect, bgdModel, fgdModel, 1 );
     else
     {
         if( rectState != SET )
             return iterCount;
 
         if( lblsState == SET || prLblsState == SET )
-            grab.grabCut( *image, mask, rect, bgdModel, fgdModel, 1, GC_INIT_WITH_MASK );
+            grab.graygrabCut( *image, mask, rect, bgdModel, fgdModel, 1, GC_INIT_WITH_MASK );
         else
-            grab.grabCut( *image, mask, rect, bgdModel, fgdModel, 1, GC_INIT_WITH_RECT );
+            grab.graygrabCut( *image, mask, rect, bgdModel, fgdModel, 1, GC_INIT_WITH_RECT );
 
         isInitialized = true;
     }

@@ -1,7 +1,8 @@
-#include"grayGrabCut.h"
+
+#include "GrayGrabCut.h"
 
 
-double GrabCut::calcBeta( const Mat& img )
+double GrayGrabCut::calcBeta( const Mat& img )
 {
     double beta = 0;
     for( int y = 0; y < img.rows; y++ )
@@ -43,7 +44,7 @@ double GrabCut::calcBeta( const Mat& img )
   Calculate weights of noterminal vertices of graph.
   beta and gamma - parameters of GrabCut algorithm.
  */
-void GrabCut::calcNWeights( const Mat& img, Mat& leftW, Mat& upleftW, Mat& upW, Mat& uprightW, double beta, double gamma )
+void GrayGrabCut::calcNWeights( const Mat& img, Mat& leftW, Mat& upleftW, Mat& upW, Mat& uprightW, double beta, double gamma )
 {
     const double gammaDivSqrt2 = gamma / std::sqrt(2.0f);
     leftW.create( img.rows, img.cols, CV_64FC1 );
@@ -90,7 +91,7 @@ void GrabCut::calcNWeights( const Mat& img, Mat& leftW, Mat& upleftW, Mat& upW, 
 /*
   Check size, type and element values of mask matrix.
  */
-void GrabCut::checkMask( const Mat& img, const Mat& mask )
+void GrayGrabCut::checkMask( const Mat& img, const Mat& mask )
 {
     if( mask.empty() )
         CV_Error( CV_StsBadArg, "mask is empty" );
@@ -113,7 +114,7 @@ void GrabCut::checkMask( const Mat& img, const Mat& mask )
 /*
   Initialize mask using rectangular.
 */
-void GrabCut::initMaskWithRect( Mat& mask, Size imgSize, Rect rect )
+void GrayGrabCut::initMaskWithRect( Mat& mask, Size imgSize, Rect rect )
 {
     mask.create( imgSize, CV_8UC1 );
     mask.setTo( GC_BGD );
@@ -129,7 +130,7 @@ void GrabCut::initMaskWithRect( Mat& mask, Size imgSize, Rect rect )
 /*
   Initialize GMM background and foreground models using kmeans algorithm.
 */
-void GrabCut::initGMMs( const Mat& img, const Mat& mask, GMM& bgdGMM, GMM& fgdGMM )
+void GrayGrabCut::initGMMs( const Mat& img, const Mat& mask, GMM& bgdGMM, GMM& fgdGMM )
 {
     const int kMeansItCount = 10;
     const int kMeansType = KMEANS_PP_CENTERS;
@@ -169,7 +170,7 @@ void GrabCut::initGMMs( const Mat& img, const Mat& mask, GMM& bgdGMM, GMM& fgdGM
 /*
   Assign GMMs components for each pixel.
 */
-void GrabCut::assignGMMsComponents( const Mat& img, const Mat& mask, const GMM& bgdGMM, const GMM& fgdGMM, Mat& compIdxs )
+void GrayGrabCut::assignGMMsComponents( const Mat& img, const Mat& mask, const GMM& bgdGMM, const GMM& fgdGMM, Mat& compIdxs )
 {
     Point p;
     for( p.y = 0; p.y < img.rows; p.y++ )
@@ -186,7 +187,7 @@ void GrabCut::assignGMMsComponents( const Mat& img, const Mat& mask, const GMM& 
 /*
   Learn GMMs parameters.
 */
-void GrabCut::learnGMMs( const Mat& img, const Mat& mask, const Mat& compIdxs, GMM& bgdGMM, GMM& fgdGMM )
+void GrayGrabCut::learnGMMs( const Mat& img, const Mat& mask, const Mat& compIdxs, GMM& bgdGMM, GMM& fgdGMM )
 {
     bgdGMM.initLearning();
     fgdGMM.initLearning();
@@ -214,7 +215,7 @@ void GrabCut::learnGMMs( const Mat& img, const Mat& mask, const Mat& compIdxs, G
 /*
   Construct GCGraph
 */
-void GrabCut::constructGCGraph( const Mat& img, const Mat& mask, const GMM& bgdGMM, const GMM& fgdGMM, double lambda,
+void GrayGrabCut::constructGCGraph( const Mat& img, const Mat& mask, const GMM& bgdGMM, const GMM& fgdGMM, double lambda,
                        const Mat& leftW, const Mat& upleftW, const Mat& upW, const Mat& uprightW,
                        GCGraph<double>& graph )
 {
@@ -277,7 +278,7 @@ void GrabCut::constructGCGraph( const Mat& img, const Mat& mask, const GMM& bgdG
 /*
   Estimate segmentation using MaxFlow algorithm
 */
-void GrabCut::estimateSegmentation( GCGraph<double>& graph, Mat& mask )
+void GrayGrabCut::estimateSegmentation( GCGraph<double>& graph, Mat& mask )
 {
     graph.maxFlow();
     Point p;
@@ -296,7 +297,7 @@ void GrabCut::estimateSegmentation( GCGraph<double>& graph, Mat& mask )
     }
 }
 
-void GrabCut::grabCut( InputArray _img, InputOutputArray _mask, Rect rect,
+void GrayGrabCut::graygrabCut( InputArray _img, InputOutputArray _mask, Rect rect,
                   InputOutputArray _bgdModel, InputOutputArray _fgdModel,
                   int iterCount, int mode )
 {

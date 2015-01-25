@@ -24,7 +24,13 @@
     <ClInclude Include="stdafx.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="grayGrabCut.h">
+    <ClInclude Include="GrayGrabCut.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="mexopencv.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MxArray.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -32,16 +38,16 @@
     <ClCompile Include="GMM.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="GrayGrabCut.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MxArray.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="mexGrayGrabCut.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="TestGrabCut.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="mexGrabCut.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="grayGrabCut.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="mexAdd.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
