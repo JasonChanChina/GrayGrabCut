@@ -297,7 +297,7 @@ static void on_mouse( int event, int x, int y, int flags, void* param )
     gcapp.mouseClick( event, x, y, flags, param );
 }
 
-int main2( int argc, char** argv )
+int main( int argc, char** argv )
 {
     if( argc!=2 )
     {
@@ -310,7 +310,7 @@ int main2( int argc, char** argv )
         cout << "\nDurn, couldn't read in " << argv[1] << endl;
         return 1;
     }
-	filename = "D:/test.jpg";
+	filename = "test.jpg";
     Mat image = imread( filename, 1);
     if( image.empty() )
     {
