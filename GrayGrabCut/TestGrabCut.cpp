@@ -107,7 +107,7 @@ void GCApplication::showImage() const
 
     Mat res;
 	res.create(image->size(), image->type());
-	res.setTo(Vec3b(255,255,255));				//设置空白区域颜色
+	res.setTo(255);				//设置空白区域颜色
 
 
     Mat binMask;
@@ -213,7 +213,7 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
             rect = Rect( Point(rect.x, rect.y), Point(x,y) );
 
 			/////////////
-			rect = Rect(29,62,262,417);
+			//rect = Rect(29,62,262,417);
 
 
 			cout<<rect.x<<","<<rect.y<<","<<rect.width<<","<<rect.height<<endl;
@@ -312,11 +312,15 @@ int main( int argc, char** argv )
     }
 	filename = "test.jpg";
     Mat image = imread( filename, 1);
+
     if( image.empty() )
     {
         cout << "\n Durn, couldn't read image filename " << filename << endl;
         return 1;
     }
+	Mat grayImage;
+	cvtColor(image,grayImage, CV_BGR2GRAY);
+
 
     help();
 
@@ -324,7 +328,7 @@ int main( int argc, char** argv )
     namedWindow( winName, WINDOW_AUTOSIZE );
     setMouseCallback( winName, on_mouse, 0 );
 
-    gcapp.setImageAndWinName( image, winName );
+    gcapp.setImageAndWinName( grayImage, winName );
     gcapp.showImage();
 
     for(;;)

@@ -18,24 +18,24 @@
     <ClInclude Include="gcgraph.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="GMM.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="GrayGrabCut.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Histogram.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GMM.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="GrayGrabCut.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TestGrabCut.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Histogram.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

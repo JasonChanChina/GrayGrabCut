@@ -9,26 +9,26 @@ double GrayGrabCut::calcBeta( const Mat& img )
     {
         for( int x = 0; x < img.cols; x++ )
         {
-            Vec3d color = img.at<Vec3b>(y,x);
+            double color = img.at<uchar>(y,x);
             if( x>0 ) // left
             {
-                Vec3d diff = color - (Vec3d)img.at<Vec3b>(y,x-1);
-                beta += diff.dot(diff);
+                double diff = color - (double)img.at<uchar>(y,x-1);
+                beta += diff*diff;
             }
             if( y>0 && x>0 ) // upleft
             {
-                Vec3d diff = color - (Vec3d)img.at<Vec3b>(y-1,x-1);
-                beta += diff.dot(diff);
+                double diff = color - (double)img.at<uchar>(y-1,x-1);
+                beta += diff*diff;
             }
             if( y>0 ) // up
             {
-                Vec3d diff = color - (Vec3d)img.at<Vec3b>(y-1,x);
-                beta += diff.dot(diff);
+                double diff = color - (double)img.at<uchar>(y-1,x);
+                beta += diff*diff;
             }
             if( y>0 && x<img.cols-1) // upright
             {
-                Vec3d diff = color - (Vec3d)img.at<Vec3b>(y-1,x+1);
-                beta += diff.dot(diff);
+                double diff = color - (double)img.at<uchar>(y-1,x+1);
+                beta += diff*diff;
             }
         }
     }
@@ -55,32 +55,32 @@ void GrayGrabCut::calcNWeights( const Mat& img, Mat& leftW, Mat& upleftW, Mat& u
     {
         for( int x = 0; x < img.cols; x++ )
         {
-            Vec3d color = img.at<Vec3b>(y,x);
+            double color = img.at<uchar>(y,x);
             if( x-1>=0 ) // left
             {
-                Vec3d diff = color - (Vec3d)img.at<Vec3b>(y,x-1);
-                leftW.at<double>(y,x) = gamma * exp(-beta*diff.dot(diff));
+                double diff = color - (double)img.at<uchar>(y,x-1);
+                leftW.at<double>(y,x) = gamma * exp(-beta*diff*diff);
             }
             else
                 leftW.at<double>(y,x) = 0;
             if( x-1>=0 && y-1>=0 ) // upleft
             {
-                Vec3d diff = color - (Vec3d)img.at<Vec3b>(y-1,x-1);
-                upleftW.at<double>(y,x) = gammaDivSqrt2 * exp(-beta*diff.dot(diff));
+                double diff = color - (double)img.at<uchar>(y-1,x-1);
+                upleftW.at<double>(y,x) = gammaDivSqrt2 * exp(-beta*diff*diff);
             }
             else
                 upleftW.at<double>(y,x) = 0;
             if( y-1>=0 ) // up
             {
-                Vec3d diff = color - (Vec3d)img.at<Vec3b>(y-1,x);
-                upW.at<double>(y,x) = gamma * exp(-beta*diff.dot(diff));
+                double diff = color - (double)img.at<uchar>(y-1,x);
+                upW.at<double>(y,x) = gamma * exp(-beta*diff*diff);
             }
             else
                 upW.at<double>(y,x) = 0;
             if( x+1<img.cols && y-1>=0 ) // upright
             {
-                Vec3d diff = color - (Vec3d)img.at<Vec3b>(y-1,x+1);
-                uprightW.at<double>(y,x) = gammaDivSqrt2 * exp(-beta*diff.dot(diff));
+                double diff = color - (double)img.at<uchar>(y-1,x+1);
+                uprightW.at<double>(y,x) = gammaDivSqrt2 * exp(-beta*diff*diff);
             }
             else
                 uprightW.at<double>(y,x) = 0;
@@ -127,95 +127,102 @@ void GrayGrabCut::initMaskWithRect( Mat& mask, Size imgSize, Rect rect )
     (mask(rect)).setTo( Scalar(GC_PR_FGD) );
 }
 
+
+void GrayGrabCut::editMask(Mat& mask, bool isFgd)
+{
+	int value1 = GC_BGD;
+	int value2 = GC_PR_BGD;
+	if(!isFgd)
+	{
+		value1 = GC_FGD;
+		value2 = GC_PR_FGD;
+	}
+
+    for( int y = 0; y < mask.rows; y++ )
+    {
+        for( int x = 0; x < mask.cols; x++ )
+        {
+            uchar value = mask.at<uchar>(y,x);
+			if(value == value1 || value == value2)
+			{
+				mask.at<uchar>(y,x) = 0;
+			}else
+			{
+				mask.at<uchar>(y,x) = 5;
+			}
+			
+		}
+	}
+
+}
+
 /*
   Initialize GMM background and foreground models using kmeans algorithm.
 */
-void GrayGrabCut::initGMMs( const Mat& img, const Mat& mask, GMM& bgdGMM, GMM& fgdGMM )
+void GrayGrabCut::initHists( const Mat& img, const Mat& mask, Histogram& bgdHist, Histogram& fgdHist )
 {
-    const int kMeansItCount = 10;
-    const int kMeansType = KMEANS_PP_CENTERS;
+	//mask中非0代表要被计算
+	Mat bgdMask(mask);   
+	//init bgdMask from mask
+	editMask(bgdMask, false);
+	bgdHist.createHist(img, bgdMask);
 
-    Mat bgdLabels, fgdLabels;
-    vector<Vec3f> bgdSamples, fgdSamples;
-    Point p;
-    for( p.y = 0; p.y < img.rows; p.y++ )
-    {
-        for( p.x = 0; p.x < img.cols; p.x++ )
-        {
-            if( mask.at<uchar>(p) == GC_BGD || mask.at<uchar>(p) == GC_PR_BGD )
-                bgdSamples.push_back( (Vec3f)img.at<Vec3b>(p) );
-            else // GC_FGD | GC_PR_FGD
-                fgdSamples.push_back( (Vec3f)img.at<Vec3b>(p) );
-        }
-    }
-    CV_Assert( !bgdSamples.empty() && !fgdSamples.empty() );
-    Mat _bgdSamples( (int)bgdSamples.size(), 3, CV_32FC1, &bgdSamples[0][0] );
-    kmeans( _bgdSamples, GMM::componentsCount, bgdLabels,
-            TermCriteria( CV_TERMCRIT_ITER, kMeansItCount, 0.0), 0, kMeansType );
-    Mat _fgdSamples( (int)fgdSamples.size(), 3, CV_32FC1, &fgdSamples[0][0] );
-    kmeans( _fgdSamples, GMM::componentsCount, fgdLabels,
-            TermCriteria( CV_TERMCRIT_ITER, kMeansItCount, 0.0), 0, kMeansType );
+	Mat fgdMask(mask);
+	//init fgdMask from mask
+	editMask(fgdMask, true);
+	fgdHist.createHist(img, fgdMask);
 
-    bgdGMM.initLearning();
-    for( int i = 0; i < (int)bgdSamples.size(); i++ )
-        bgdGMM.addSample( bgdLabels.at<int>(i,0), bgdSamples[i] );
-    bgdGMM.endLearning();
-
-    fgdGMM.initLearning();
-    for( int i = 0; i < (int)fgdSamples.size(); i++ )
-        fgdGMM.addSample( fgdLabels.at<int>(i,0), fgdSamples[i] );
-    fgdGMM.endLearning();
 }
 
-/*
-  Assign GMMs components for each pixel.
-*/
-void GrayGrabCut::assignGMMsComponents( const Mat& img, const Mat& mask, const GMM& bgdGMM, const GMM& fgdGMM, Mat& compIdxs )
-{
-    Point p;
-    for( p.y = 0; p.y < img.rows; p.y++ )
-    {
-        for( p.x = 0; p.x < img.cols; p.x++ )
-        {
-            Vec3d color = img.at<Vec3b>(p);
-            compIdxs.at<int>(p) = mask.at<uchar>(p) == GC_BGD || mask.at<uchar>(p) == GC_PR_BGD ?
-                bgdGMM.whichComponent(color) : fgdGMM.whichComponent(color);
-        }
-    }
-}
+///*
+//  Assign GMMs components for each pixel.
+//*/
+//void GrayGrabCut::assignGMMsComponents( const Mat& img, const Mat& mask, const Histogram& bgdHist, const Histogram& fgdHist, Mat& compIdxs )
+//{
+//    Point p;
+//    for( p.y = 0; p.y < img.rows; p.y++ )
+//    {
+//        for( p.x = 0; p.x < img.cols; p.x++ )
+//        {
+//            double color = img.at<uchar>(p);
+//            compIdxs.at<int>(p) = mask.at<uchar>(p) == GC_BGD || mask.at<uchar>(p) == GC_PR_BGD ?
+//                bgdHist.(color) : fgdGMM.whichComponent(color);
+//        }
+//    }
+//}
 
-/*
-  Learn GMMs parameters.
-*/
-void GrayGrabCut::learnGMMs( const Mat& img, const Mat& mask, const Mat& compIdxs, GMM& bgdGMM, GMM& fgdGMM )
-{
-    bgdGMM.initLearning();
-    fgdGMM.initLearning();
-    Point p;
-    for( int ci = 0; ci < GMM::componentsCount; ci++ )
-    {
-        for( p.y = 0; p.y < img.rows; p.y++ )
-        {
-            for( p.x = 0; p.x < img.cols; p.x++ )
-            {
-                if( compIdxs.at<int>(p) == ci )
-                {
-                    if( mask.at<uchar>(p) == GC_BGD || mask.at<uchar>(p) == GC_PR_BGD )
-                        bgdGMM.addSample( ci, img.at<Vec3b>(p) );
-                    else
-                        fgdGMM.addSample( ci, img.at<Vec3b>(p) );
-                }
-            }
-        }
-    }
-    bgdGMM.endLearning();
-    fgdGMM.endLearning();
-}
+///*
+//  Learn GMMs parameters.
+//*/
+//void GrayGrabCut::learnGMMs( const Mat& img, const Mat& mask, const Mat& compIdxs, Histogram& bgdGMM, Histogram& fgdGMM )
+//{
+//    bgdGMM.initLearning();
+//    fgdGMM.initLearning();
+//    Point p;
+//    for( int ci = 0; ci < GMM::componentsCount; ci++ )
+//    {
+//        for( p.y = 0; p.y < img.rows; p.y++ )
+//        {
+//            for( p.x = 0; p.x < img.cols; p.x++ )
+//            {
+//                if( compIdxs.at<int>(p) == ci )
+//                {
+//                    if( mask.at<uchar>(p) == GC_BGD || mask.at<uchar>(p) == GC_PR_BGD )
+//                        bgdGMM.addSample( ci, img.at<Vec3b>(p) );
+//                    else
+//                        fgdGMM.addSample( ci, img.at<Vec3b>(p) );
+//                }
+//            }
+//        }
+//    }
+//    bgdGMM.endLearning();
+//    fgdGMM.endLearning();
+//}
 
 /*
   Construct GCGraph
 */
-void GrayGrabCut::constructGCGraph( const Mat& img, const Mat& mask, const GMM& bgdGMM, const GMM& fgdGMM, double lambda,
+void GrayGrabCut::constructGCGraph( const Mat& img, const Mat& mask, const Histogram& bgdHist, const Histogram& fgdHist, double lambda,
                        const Mat& leftW, const Mat& upleftW, const Mat& upW, const Mat& uprightW,
                        GCGraph<double>& graph )
 {
@@ -229,14 +236,14 @@ void GrayGrabCut::constructGCGraph( const Mat& img, const Mat& mask, const GMM& 
         {
             // add node
             int vtxIdx = graph.addVtx();
-            Vec3b color = img.at<Vec3b>(p);
+            uchar color = img.at<uchar>(p);
 
             // set t-weights
             double fromSource, toSink;
             if( mask.at<uchar>(p) == GC_PR_BGD || mask.at<uchar>(p) == GC_PR_FGD )
             {
-                fromSource = -log( bgdGMM(color) );
-                toSink = -log( fgdGMM(color) );
+				fromSource = -log( bgdHist.probability(color) );
+				toSink = -log( fgdHist.probability(color) );
             }
             else if( mask.at<uchar>(p) == GC_BGD )
             {
@@ -303,16 +310,17 @@ void GrayGrabCut::graygrabCut( InputArray _img, InputOutputArray _mask, Rect rec
 {
     Mat img = _img.getMat();
     Mat& mask = _mask.getMatRef();
-    Mat& bgdModel = _bgdModel.getMatRef();
-    Mat& fgdModel = _fgdModel.getMatRef();
+	Mat bgdModel = _bgdModel.getMat();
+	Mat fgdModel = _fgdModel.getMat();
 
     if( img.empty() )
         CV_Error( CV_StsBadArg, "image is empty" );
-    if( img.type() != CV_8UC3 )
-        CV_Error( CV_StsBadArg, "image mush have CV_8UC3 type" );
+    if( img.type() != CV_8UC1 )
+        CV_Error( CV_StsBadArg, "image mush have CV_8UC1 type" );
 
-    GMM bgdGMM( bgdModel ), fgdGMM( fgdModel );
-    Mat compIdxs( img.size(), CV_32SC1 );
+	Histogram bgdHist(bgdModel), fgdHist(fgdModel);
+
+    //Mat compIdxs( img.size(), CV_32SC1 );	//每个像素属于直方图的
 
     if( mode == GC_INIT_WITH_RECT || mode == GC_INIT_WITH_MASK )
     {
@@ -320,7 +328,8 @@ void GrayGrabCut::graygrabCut( InputArray _img, InputOutputArray _mask, Rect rec
             initMaskWithRect( mask, img.size(), rect );
         else // flag == GC_INIT_WITH_MASK
             checkMask( img, mask );
-        initGMMs( img, mask, bgdGMM, fgdGMM );
+		
+		//initHists( img, mask, bgdHist, fgdHist);
     }
 
     if( iterCount <= 0)
@@ -332,16 +341,17 @@ void GrayGrabCut::graygrabCut( InputArray _img, InputOutputArray _mask, Rect rec
     const double gamma = 50;
     const double lambda = 9*gamma;
     const double beta = calcBeta( img );
-
+	
     Mat leftW, upleftW, upW, uprightW;
     calcNWeights( img, leftW, upleftW, upW, uprightW, beta, gamma );
 
     for( int i = 0; i < iterCount; i++ )
     {
         GCGraph<double> graph;
-        assignGMMsComponents( img, mask, bgdGMM, fgdGMM, compIdxs );
-        learnGMMs( img, mask, compIdxs, bgdGMM, fgdGMM );
-        constructGCGraph(img, mask, bgdGMM, fgdGMM, lambda, leftW, upleftW, upW, uprightW, graph );
+		initHists( img, mask, bgdHist, fgdHist);
+        //assignGMMsComponents( img, mask, bgdHist, fgdHist, compIdxs );
+        //learnGMMs( img, mask, compIdxs, bgdHist, fgdHist );
+        constructGCGraph(img, mask, bgdHist, fgdHist, lambda, leftW, upleftW, upW, uprightW, graph );
         estimateSegmentation( graph, mask );
     }
 }
