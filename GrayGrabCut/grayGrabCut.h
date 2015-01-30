@@ -16,10 +16,8 @@ public:
 	void calcNWeights( const Mat& img, Mat& leftW, Mat& upleftW, Mat& upW, Mat& uprightW, double beta, double gamma );
 	void checkMask( const Mat& img, const Mat& mask );
 	void initMaskWithRect( Mat& mask, Size imgSize, Rect rect );
-	void initHists( const Mat& img, const Mat& mask, Histogram& bgdGMM, Histogram& fgdGMM );
-	//void assignGMMsComponents( const Mat& img, const Mat& mask, const Histogram& bgdGMM, const Histogram& fgdGMM, Mat& compIdxs );
-	//void learnGMMs( const Mat& img, const Mat& mask, const Mat& compIdxs, Histogram& bgdGMM, Histogram& fgdGMM );
-	void constructGCGraph( const Mat& img, const Mat& mask, const Histogram& bgdGMM, const Histogram& fgdGMM, double lambda,
+	void initHists( const Mat& img, const Mat& mask, Histogram& bgdHist, Histogram& fgdHist );
+	void constructGCGraph( const Mat& img, const Mat& mask, const Histogram& bgdHist, const Histogram& fgdHist, double lambda,
                        const Mat& leftW, const Mat& upleftW, const Mat& upW, const Mat& uprightW,
                        GCGraph<double>& graph );
 	void estimateSegmentation( GCGraph<double>& graph, Mat& mask );

@@ -157,67 +157,21 @@ void GrayGrabCut::editMask(Mat& mask, bool isFgd)
 }
 
 /*
-  Initialize GMM background and foreground models using kmeans algorithm.
+  Initialize Hist background and foreground models using kmeans algorithm.
 */
 void GrayGrabCut::initHists( const Mat& img, const Mat& mask, Histogram& bgdHist, Histogram& fgdHist )
 {
 	//mask中非0代表要被计算
-	Mat bgdMask(mask);   
-	//init bgdMask from mask
+
+	Mat bgdMask = mask.clone();
 	editMask(bgdMask, false);
 	bgdHist.createHist(img, bgdMask);
 
-	Mat fgdMask(mask);
-	//init fgdMask from mask
+
+	Mat fgdMask = mask.clone();
 	editMask(fgdMask, true);
 	fgdHist.createHist(img, fgdMask);
-
 }
-
-///*
-//  Assign GMMs components for each pixel.
-//*/
-//void GrayGrabCut::assignGMMsComponents( const Mat& img, const Mat& mask, const Histogram& bgdHist, const Histogram& fgdHist, Mat& compIdxs )
-//{
-//    Point p;
-//    for( p.y = 0; p.y < img.rows; p.y++ )
-//    {
-//        for( p.x = 0; p.x < img.cols; p.x++ )
-//        {
-//            double color = img.at<uchar>(p);
-//            compIdxs.at<int>(p) = mask.at<uchar>(p) == GC_BGD || mask.at<uchar>(p) == GC_PR_BGD ?
-//                bgdHist.(color) : fgdGMM.whichComponent(color);
-//        }
-//    }
-//}
-
-///*
-//  Learn GMMs parameters.
-//*/
-//void GrayGrabCut::learnGMMs( const Mat& img, const Mat& mask, const Mat& compIdxs, Histogram& bgdGMM, Histogram& fgdGMM )
-//{
-//    bgdGMM.initLearning();
-//    fgdGMM.initLearning();
-//    Point p;
-//    for( int ci = 0; ci < GMM::componentsCount; ci++ )
-//    {
-//        for( p.y = 0; p.y < img.rows; p.y++ )
-//        {
-//            for( p.x = 0; p.x < img.cols; p.x++ )
-//            {
-//                if( compIdxs.at<int>(p) == ci )
-//                {
-//                    if( mask.at<uchar>(p) == GC_BGD || mask.at<uchar>(p) == GC_PR_BGD )
-//                        bgdGMM.addSample( ci, img.at<Vec3b>(p) );
-//                    else
-//                        fgdGMM.addSample( ci, img.at<Vec3b>(p) );
-//                }
-//            }
-//        }
-//    }
-//    bgdGMM.endLearning();
-//    fgdGMM.endLearning();
-//}
 
 /*
   Construct GCGraph
@@ -242,6 +196,8 @@ void GrayGrabCut::constructGCGraph( const Mat& img, const Mat& mask, const Histo
             double fromSource, toSink;
             if( mask.at<uchar>(p) == GC_PR_BGD || mask.at<uchar>(p) == GC_PR_FGD )
             {
+				double kk = bgdHist.probability(color);
+				double kk2 = fgdHist.probability(color);
 				fromSource = -log( bgdHist.probability(color) );
 				toSink = -log( fgdHist.probability(color) );
             }
@@ -320,16 +276,11 @@ void GrayGrabCut::graygrabCut( InputArray _img, InputOutputArray _mask, Rect rec
 
 	Histogram bgdHist(bgdModel), fgdHist(fgdModel);
 
-    //Mat compIdxs( img.size(), CV_32SC1 );	//每个像素属于直方图的
-
     if( mode == GC_INIT_WITH_RECT || mode == GC_INIT_WITH_MASK )
     {
         if( mode == GC_INIT_WITH_RECT )
             initMaskWithRect( mask, img.size(), rect );
-        else // flag == GC_INIT_WITH_MASK
-            checkMask( img, mask );
-		
-		//initHists( img, mask, bgdHist, fgdHist);
+        checkMask( img, mask );
     }
 
     if( iterCount <= 0)
@@ -349,8 +300,6 @@ void GrayGrabCut::graygrabCut( InputArray _img, InputOutputArray _mask, Rect rec
     {
         GCGraph<double> graph;
 		initHists( img, mask, bgdHist, fgdHist);
-        //assignGMMsComponents( img, mask, bgdHist, fgdHist, compIdxs );
-        //learnGMMs( img, mask, compIdxs, bgdHist, fgdHist );
         constructGCGraph(img, mask, bgdHist, fgdHist, lambda, leftW, upleftW, upW, uprightW, graph );
         estimateSegmentation( graph, mask );
     }
