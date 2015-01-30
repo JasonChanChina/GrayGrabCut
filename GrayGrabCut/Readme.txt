@@ -25,7 +25,7 @@ matlab+CPP混合编译说明
 1. 把matlab的当前目录设置到本工程CPP文件目录
 2. mex -setup 设置编译器为VS编译器
 3. 运行一下命令编译：
-	mex mexGrayGrabCut.cpp MxArray.cpp GrayGrabCut.cpp GMM.cpp  -outdir ./ -O -DNDEBUG -I.\ -IC:\opencv\build\include -largeArrayDims -LC:\opencv\build\x64\vc11\lib -lopencv_core248 -lopencv_highgui248 -lopencv_video248 -lopencv_imgproc248
+    mex mexGrayGrabCut.cpp MxArray.cpp GrayGrabCut.cpp Histogram.cpp  -outdir ./ -O -DNDEBUG -I.\ -IC:\opencv\build\include -largeArrayDims -LC:\opencv\build\x64\vc11\lib -lopencv_core248 -lopencv_highgui248 -lopencv_video248 -lopencv_imgproc248
 --------------------------------
 命令格式解析(help mex)：
 	mex 所有相关CPP文件 .....
