@@ -37,8 +37,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
         mexErrMsgIdAndTxt("mexopencv:error","Wrong number of arguments");    
     if (rhs[0].classID()!=mxUINT8_CLASS)
         mexErrMsgIdAndTxt("mexopencv:error","Only UINT8 type is supported");
-    if (rhs[0].ndims()!=3)
-        mexErrMsgIdAndTxt("mexopencv:error","Only RGB format is supported");
+    if (rhs[0].ndims()!=2)
+        mexErrMsgIdAndTxt("mexopencv:error","Only 2 format(Gray) is supported");
     
     // Option processing
     Mat bgdModel, fgdModel;
