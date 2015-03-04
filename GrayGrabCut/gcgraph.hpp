@@ -58,17 +58,17 @@ private:
     {
     public:
         Vtx *next; // initialized and used in maxFlow() only
-        int parent;
+        int parent;	//存储路径(父节点)
         int first;	//第一个延生出去的边（以此点为起点的边）
-        int ts;
-        int dist;
-        TWeight weight;		//  >0 偏向Source   <0 偏向Sink
+        int ts;		//此点的流量
+        int dist;	//距离root的节点数量distance
+        TWeight weight;		//  =（Source-Sink） 净权  ： >0 代表是Source   <0 代表是Sink
         uchar t;	//=0 属于source,, !=0 属于sink
     };
     class Edge
     {
     public:
-        int dst;		//边的终点（边的起点未保存，因为程序中是通过点找边，无须保存起点）
+        int dst;		//目的点，边的终点（边的起点未保存，因为程序中是通过点找边，无须保存起点）
         int next;		//下一个兄弟边（起点一样的边）
         TWeight weight;
     };
@@ -141,18 +141,18 @@ void GCGraph<TWeight>::addTermWeights( int i, TWeight sourceW, TWeight sinkW )
 
     TWeight dw = vtcs[i].weight;
     if( dw > 0 )
-        sourceW += dw;
+        sourceW += dw;	//sourceW 是正数
     else
-        sinkW -= dw;
-    flow += (sourceW < sinkW) ? sourceW : sinkW;
+        sinkW -= dw;	//sinkW 是正数
+    flow += (sourceW < sinkW) ? sourceW : sinkW;		//累加最小的T-link
     vtcs[i].weight = sourceW - sinkW;
 }
 
 template <class TWeight>
 TWeight GCGraph<TWeight>::maxFlow()
 {
-    const int TERMINAL = -1, ORPHAN = -2;
-    Vtx stub, *nilNode = &stub, *first = nilNode, *last = nilNode;
+    const int TERMINAL = -1, /* 末端 */  ORPHAN = -2;   /* 孤立 */
+    Vtx stub, *nilNode = &stub, *first = nilNode, *last = nilNode;	//nilNode指向空点stub
     int curr_ts = 0;
     stub.next = nilNode;
     Vtx *vtxPtr = &vtcs[0];
@@ -160,24 +160,24 @@ TWeight GCGraph<TWeight>::maxFlow()
 
     std::vector<Vtx*> orphans;
 
-    // initialize the active queue and the graph vertices
+    // initialize the active queue and the graph vertices	//串联节点
     for( int i = 0; i < (int)vtcs.size(); i++ )
     {
         Vtx* v = vtxPtr + i;
-        v->ts = 0;
+        v->ts = 0;	//各个点初始流量设为0
         if( v->weight != 0 )
         {
-            last = last->next = v;
-            v->dist = 1;
+            last = last->next = v;	//串联 上一个节点和当前节点
+            v->dist = 1;	//初始距离=1，即一个节点
             v->parent = TERMINAL;
-            v->t = v->weight < 0;
+            v->t = v->weight < 0;	//标记0/1，source=0 or sink=1
         }
         else
-            v->parent = 0;
+            v->parent = 0;		//未被串联的点
     }
-    first = first->next;
-    last->next = nilNode;
-    nilNode->next = 0;
+    first = first->next;	//指向第一个有效点
+    last->next = nilNode;	//把最后一个点指向空点，即空点在最后，终止标志
+    nilNode->next = 0;		//空点不指向任何东西
 
     // run the search-path -> augment-graph -> restore-trees loop
     for(;;)
@@ -185,53 +185,56 @@ TWeight GCGraph<TWeight>::maxFlow()
         Vtx* v, *u;
         int e0 = -1, ei = 0, ej = 0;
         TWeight minWeight, weight;
-        uchar vt;
+        uchar vt;	//即v->t
 
         // grow S & T search trees, find an edge connecting them
-        while( first != nilNode )
+        while( first != nilNode )		//遍历串联上的所有 点及其邻居边(即生长grow)
         {
             v = first;
-            if( v->parent )
+            if( v->parent )     // v->parent != 0 ，只处理被串联的点
             {
                 vt = v->t;
-                for( ei = v->first; ei != 0; ei = edgePtr[ei].next )
+                for( ei = v->first; ei != 0; ei = edgePtr[ei].next )	//遍历v点的所有邻边
                 {
-                    if( edgePtr[ei^vt].weight == 0 )
+                    if( edgePtr[ei^vt].weight == 0 )	//若ei是从偏向source的点(v->t==0)伸出来的边，则就是当前边，若是从偏向sink的点伸出来的边，则求反向边
                         continue;
-                    u = vtxPtr+edgePtr[ei].dst;
-                    if( !u->parent )
+                    u = vtxPtr+edgePtr[ei].dst;		//目的节点，即边i->j 的目的点j
+                    if( !u->parent )		//u->parent == 0 ，即此点未被处理过
                     {
-                        u->t = vt;
-                        u->parent = ei ^ 1;
+                        u->t = vt;			//设置其属于v->t的阵营
+                        u->parent = ei ^ 1;	//若k=2n,则k^1=2n+1,  若k=2n+1,则k^=2n, 即找出2n和2n+1的边(即找出对应的反向边)  
+						//if(ei % 2 == 0) u->parent = ei+1;
+						//else u->parent = ei-1;
+
                         u->ts = v->ts;
-                        u->dist = v->dist + 1;
-                        if( !u->next )
+                        u->dist = v->dist + 1;	//路径长度+1
+                        if( !u->next )	// u->next == null,即没有Next，表示是最后一个
                         {
                             u->next = nilNode;
                             last = last->next = u;
                         }
-                        continue;
+                        continue;	//继续查找邻居边
                     }
 
-                    if( u->t != vt )
+                    if( u->t != vt )	//不在一个阵营
                     {
-                        e0 = ei ^ vt;
-                        break;
+                        e0 = ei ^ vt;	//存储到e0  //若ei是从偏向source的点(v->t==0)伸出来的边，则就是当前边，若是从偏向sink的点伸出来的边，则求反向边
+                        break;		//找到S->T的路径，结束
                     }
 
-                    if( u->dist > v->dist+1 && u->ts <= v->ts )
+                    if( u->dist > v->dist+1 && u->ts <= v->ts )		//找到一个已被处理过的更差的点，更新路径信息和长度
                     {
                         // reassign the parent
-                        u->parent = ei ^ 1;
+                        u->parent = ei ^ 1;			//若k=2n,则k^1=2n+1,  若k=2n+1,则k^=2n, 即找出2n和2n+1的边(即找出对应的反向边)
                         u->ts = v->ts;
                         u->dist = v->dist + 1;
                     }
                 }
-                if( e0 > 0 )
+                if( e0 > 0 )	//找到一个不在一个阵营的点，就结束
                     break;
             }
             // exclude the vertex from the active list
-            first = first->next;
+            first = first->next;	
             v->next = 0;
         }
 
@@ -258,8 +261,8 @@ TWeight GCGraph<TWeight>::maxFlow()
         }
 
         // modify weights of the edges along the path and collect orphans
-        edgePtr[e0].weight -= minWeight;
-        edgePtr[e0^1].weight += minWeight;
+        edgePtr[e0].weight -= minWeight;			
+        edgePtr[e0^1].weight += minWeight;				//若k=2n,则k^1=2n+1,  若k=2n+1,则k^=2n, 即找出2n和2n+1的边(即找出对应的反向边)
         flow += minWeight;
 
         // k = 1: source tree, k = 0: destination tree

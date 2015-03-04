@@ -181,7 +181,8 @@ void GrayGrabCut::constructGCGraph( const Mat& img, const Mat& mask, const Histo
                        GCGraph<double>& graph )
 {
     int vtxCount = img.cols*img.rows,
-        edgeCount = 2*(4*img.cols*img.rows - 3*(img.cols + img.rows) + 2);
+        edgeCount = 2*(4*img.cols*img.rows - 3*(img.cols + img.rows) + 2);	//8方向  未考虑S / T 点
+		//			2（有向图）* （ 4（左上4方向）*cols*rows - 3（倍）*（cols(向上) + rows（向左）） + 2（补上重复减掉的））
     graph.create(vtxCount, edgeCount);
     Point p;
     for( p.y = 0; p.y < img.rows; p.y++ )
