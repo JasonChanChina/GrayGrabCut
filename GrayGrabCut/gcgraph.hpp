@@ -58,11 +58,11 @@ private:
     {
     public:
         Vtx *next; // initialized and used in maxFlow() only
-        int parent;	//存储路径(父节点)
+        int parent;	//存储路径，边
         int first;	//第一个延生出去的边（以此点为起点的边）
         int ts;		//此点的流量
         int dist;	//距离root的节点数量distance
-        TWeight weight;		//  =（Source-Sink） 净权  ： >0 代表是Source   <0 代表是Sink
+        TWeight vWeight;		//  =（Source-Sink） 净权  ： >0 代表是Source   <0 代表是Sink
         uchar t;	//=0 属于source,, !=0 属于sink
     };
     class Edge
@@ -96,7 +96,7 @@ template <class TWeight>
 void GCGraph<TWeight>::create( unsigned int vtxCount, unsigned int edgeCount )
 {
     vtcs.reserve( vtxCount );
-    edges.reserve( edgeCount + 2 );
+    edges.reserve( edgeCount + 2 );		//多出某两点到S/T的两条边
     flow = 0;
 }
 
@@ -139,13 +139,13 @@ void GCGraph<TWeight>::addTermWeights( int i, TWeight sourceW, TWeight sinkW )
 {
     CV_Assert( i>=0 && i<(int)vtcs.size() );
 
-    TWeight dw = vtcs[i].weight;
+    TWeight dw = vtcs[i].vWeight;
     if( dw > 0 )
         sourceW += dw;	//sourceW 是正数
     else
         sinkW -= dw;	//sinkW 是正数
     flow += (sourceW < sinkW) ? sourceW : sinkW;		//累加最小的T-link
-    vtcs[i].weight = sourceW - sinkW;
+    vtcs[i].vWeight = sourceW - sinkW;
 }
 
 template <class TWeight>
@@ -165,12 +165,12 @@ TWeight GCGraph<TWeight>::maxFlow()
     {
         Vtx* v = vtxPtr + i;
         v->ts = 0;	//各个点初始流量设为0
-        if( v->weight != 0 )
+        if( v->vWeight != 0 )
         {
             last = last->next = v;	//串联 上一个节点和当前节点
             v->dist = 1;	//初始距离=1，即一个节点
             v->parent = TERMINAL;
-            v->t = v->weight < 0;	//标记0/1，source=0 or sink=1
+            v->t = v->vWeight < 0;	//标记0/1，source=0 or sink=1
         }
         else
             v->parent = 0;		//未被串联的点
@@ -230,7 +230,7 @@ TWeight GCGraph<TWeight>::maxFlow()
                         u->dist = v->dist + 1;
                     }
                 }
-                if( e0 > 0 )	//找到一个不在一个阵营的点，就结束
+                if( e0 > 0 )	//找到一个跨越阵营的边，就结束
                     break;
             }
             // exclude the vertex from the active list
@@ -242,10 +242,12 @@ TWeight GCGraph<TWeight>::maxFlow()
             break;
 
         // find the minimum edge weight along the path
-        minWeight = edgePtr[e0].weight;
+        minWeight = edgePtr[e0].weight;			//设置初始最小权重为跨阵营边的权重
         assert( minWeight > 0 );
+
+		//找出从跨阵营边开始，往两边走的所有边权重最小值
         // k = 1: source tree, k = 0: destination tree
-        for( int k = 1; k >= 0; k-- )
+        for( int k = 1; k >= 0; k-- )		//e0^k ： 若是source tree，则是从右往左，若是destination tree，则是从左往右
         {
             for( v = vtxPtr+edgePtr[e0^k].dst;; v = vtxPtr+edgePtr[ei].dst )
             {
@@ -255,16 +257,17 @@ TWeight GCGraph<TWeight>::maxFlow()
                 minWeight = MIN(minWeight, weight);
                 assert( minWeight > 0 );
             }
-            weight = fabs(v->weight);
+            weight = fabs(v->vWeight);	//考虑S/T点到v点的边权(t-link)
             minWeight = MIN(minWeight, weight);
             assert( minWeight > 0 );
         }
 
         // modify weights of the edges along the path and collect orphans
         edgePtr[e0].weight -= minWeight;			
-        edgePtr[e0^1].weight += minWeight;				//若k=2n,则k^1=2n+1,  若k=2n+1,则k^=2n, 即找出2n和2n+1的边(即找出对应的反向边)
+        edgePtr[e0^1].weight += minWeight;				//对应反向边 //若k=2n,则k^1=2n+1,  若k=2n+1,则k^=2n, 即找出2n和2n+1的边(即找出对应的反向边)
         flow += minWeight;
 
+		//从中间向两边叠加残留网络的最小流量
         // k = 1: source tree, k = 0: destination tree
         for( int k = 1; k >= 0; k-- )
         {
@@ -273,15 +276,16 @@ TWeight GCGraph<TWeight>::maxFlow()
                 if( (ei = v->parent) < 0 )
                     break;
                 edgePtr[ei^(k^1)].weight += minWeight;
-                if( (edgePtr[ei^k].weight -= minWeight) == 0 )
+                if( (edgePtr[ei^k].weight -= minWeight) == 0 )	//若边上流量为0，则此点为orphans（孤立点）
                 {
                     orphans.push_back(v);
                     v->parent = ORPHAN;
                 }
             }
 
-            v->weight = v->weight + minWeight*(1-k*2);
-            if( v->weight == 0 )
+			//考虑S/T点到v点的边权(t-link) 上累加 流
+            v->vWeight = v->vWeight + minWeight*(1-k*2);
+            if( v->vWeight == 0 )		
             {
                orphans.push_back(v);
                v->parent = ORPHAN;
