@@ -39,6 +39,10 @@
 //
 //M*/
 
+
+// 来自于论文：An Experimental Comparison of Min-Cut/Max-Flow Algorithms for Energy Minimization in Vision
+// 其中的第3节
+
 #pragma once
 
 template <class TWeight> class GCGraph
@@ -60,7 +64,7 @@ private:
         Vtx *next; // initialized and used in maxFlow() only
         int parent;	//存储路径，边
         int first;	//第一个延生出去的边（以此点为起点的边）
-        int ts;		//此点的流量
+        int ts;		//to source，即标志是否直接/间接连接到S/T，0=未连接，1,2,3,4...=代表不同的路径p的标志
         int dist;	//距离root的节点数量distance
         TWeight vWeight;		//  =（Source-Sink） 净权  ： >0 代表是Source   <0 代表是Sink
         uchar t;	//=0 属于source,, !=0 属于sink
@@ -164,7 +168,7 @@ TWeight GCGraph<TWeight>::maxFlow()
     for( int i = 0; i < (int)vtcs.size(); i++ )
     {
         Vtx* v = vtxPtr + i;
-        v->ts = 0;	//各个点初始流量设为0
+        v->ts = 0;	//设置初始值=0
         if( v->vWeight != 0 )
         {
             last = last->next = v;	//串联 上一个节点和当前节点
@@ -187,6 +191,7 @@ TWeight GCGraph<TWeight>::maxFlow()
         TWeight minWeight, weight;
         uchar vt;	//即v->t
 
+		// 1. 找出增广路径p，即从图上找出一条跨阵营的流，无需通过所有点，这样的流的起点和终点再分别连接S和T，则成为了一条S->T或者T->S的有效流（还不是最大流）
         // grow S & T search trees, find an edge connecting them
         while( first != nilNode )		//遍历串联上的所有 点及其邻居边(即生长grow)
         {
@@ -198,7 +203,7 @@ TWeight GCGraph<TWeight>::maxFlow()
                 {
                     if( edgePtr[ei^vt].weight == 0 )	//若ei是从偏向source的点(v->t==0)伸出来的边，则就是当前边，若是从偏向sink的点伸出来的边，则求反向边
                         continue;
-                    u = vtxPtr+edgePtr[ei].dst;		//目的节点，即边i->j 的目的点j
+                    u = vtxPtr+edgePtr[ei].dst;		//目的节点，即v的邻居点，即边i->j 的目的点j
                     if( !u->parent )		//u->parent == 0 ，即此点未被处理过
                     {
                         u->t = vt;			//设置其属于v->t的阵营
@@ -241,6 +246,7 @@ TWeight GCGraph<TWeight>::maxFlow()
         if( e0 <= 0 )
             break;
 
+		// 2. 找出路径p上的限制容量
         // find the minimum edge weight along the path
         minWeight = edgePtr[e0].weight;			//设置初始最小权重为跨阵营边的权重
         assert( minWeight > 0 );
@@ -267,7 +273,7 @@ TWeight GCGraph<TWeight>::maxFlow()
         edgePtr[e0^1].weight += minWeight;				//对应反向边 //若k=2n,则k^1=2n+1,  若k=2n+1,则k^=2n, 即找出2n和2n+1的边(即找出对应的反向边)
         flow += minWeight;
 
-		//从中间向两边叠加残留网络的最小流量
+		// 3. 用限制容量修改路径p后得到残留网络，并记录边上流量为0的中立点(vWeight==0,不偏向S/T)
         // k = 1: source tree, k = 0: destination tree
         for( int k = 1; k >= 0; k-- )
         {
@@ -276,14 +282,14 @@ TWeight GCGraph<TWeight>::maxFlow()
                 if( (ei = v->parent) < 0 )
                     break;
                 edgePtr[ei^(k^1)].weight += minWeight;
-                if( (edgePtr[ei^k].weight -= minWeight) == 0 )	//若边上流量为0，则此点为orphans（孤立点）
+                if( (edgePtr[ei^k].weight -= minWeight) == 0 )	//若边上流量为0，则此点为orphans（中立点(vWeight==0,不偏向S/T)）
                 {
                     orphans.push_back(v);
                     v->parent = ORPHAN;
                 }
             }
 
-			//考虑S/T点到v点的边权(t-link) 上累加 流
+			//考虑S/T点到v点的边权(t-link) 减去 限制容量
             v->vWeight = v->vWeight + minWeight*(1-k*2);
             if( v->vWeight == 0 )		
             {
@@ -293,7 +299,7 @@ TWeight GCGraph<TWeight>::maxFlow()
         }
 
         // restore the search trees by finding new parents for the orphans
-        curr_ts++;
+        curr_ts++;	//=1,2,3,4,5... 代表不同的路径p的标志
         while( !orphans.empty() )
         {
             Vtx* v2 = orphans.back();
@@ -303,31 +309,36 @@ TWeight GCGraph<TWeight>::maxFlow()
             e0 = 0;
             vt = v2->t;
 
-            for( ei = v2->first; ei != 0; ei = edgePtr[ei].next )
+			//遍历中立点(vWeight==0,不偏向S/T)的所有邻边，找出同阵营的非中立点(vWeight==0,不偏向S/T)邻居
+			//（且其起源于S/T，保证不是从中立点(vWeight==0,不偏向S/T)起源过来的），若找到，就以新v->parent连接保留在阵营这边，
+			//若没找到，它和其孩子点就设置为中立点(vWeight==0,不偏向S/T)，继续存入中立点(vWeight==0,不偏向S/T)集合
+            for( ei = v2->first; ei != 0; ei = edgePtr[ei].next )			
             {
-                if( edgePtr[ei^(vt^1)].weight == 0 )
+                if( edgePtr[ei^(vt^1)].weight == 0 )		//跳过权重为u->v的权重<=0的点
                     continue;
-                u = vtxPtr+edgePtr[ei].dst;
-                if( u->t != vt || u->parent == 0 )
+                u = vtxPtr+edgePtr[ei].dst;					//v2的相邻点
+                if( u->t != vt || u->parent == 0 )			//跳过非同阵营点和非路径p上的点(中立点(vWeight==0,不偏向S/T))
                     continue;
+
+				//找出其是否起源于S/T
                 // compute the distance to the tree root
                 for( d = 0;; )
                 {
-                    if( u->ts == curr_ts )
+                    if( u->ts == curr_ts )		//u和当前能连接上S/T的路径标志相同，即确认其可以连接上S/T
                     {
                         d += u->dist;
                         break;
                     }
                     ej = u->parent;
                     d++;
-                    if( ej < 0 )
+                    if( ej < 0 )		//边缘点
                     {
-                        if( ej == ORPHAN )
-                            d = INT_MAX-1;
-                        else
-                        {
-                            u->ts = curr_ts;
-                            u->dist = 1;
+                        if( ej == ORPHAN )		//若是中立点，即无边
+                            d = INT_MAX-1;		//设置为距离无限大
+                        else                    //在找路径p时未访问的点
+                        {               
+                            u->ts = curr_ts;	//设置到当前路径中
+                            u->dist = 1;		//所以设置其dist=1,因为他可以直接连接S/T
                         }
                         break;
                     }
@@ -335,9 +346,9 @@ TWeight GCGraph<TWeight>::maxFlow()
                 }
 
                 // update the distance
-                if( ++d < INT_MAX )
+                if( ++d < INT_MAX )			//判断找出的距离是合理的距离
                 {
-                    if( d < minDist )
+                    if( d < minDist )		//比之前存储的距离还小，则更新
                     {
                         minDist = d;
                         e0 = ei;
@@ -350,6 +361,7 @@ TWeight GCGraph<TWeight>::maxFlow()
                 }
             }
 
+			//设置v2到S/T路径最短的邻居边
             if( (v2->parent = e0) > 0 )
             {
                 v2->ts = curr_ts;
@@ -358,19 +370,20 @@ TWeight GCGraph<TWeight>::maxFlow()
             }
 
             /* no parent is found */
+			// 若未找到可以连接到S/T，则把它极其同阵营关联点都加入到孤立集合里
             v2->ts = 0;
             for( ei = v2->first; ei != 0; ei = edgePtr[ei].next )
             {
                 u = vtxPtr+edgePtr[ei].dst;
                 ej = u->parent;
-                if( u->t != vt || !ej )
+                if( u->t != vt || !ej )		//非同阵营，或边无效(已经是边缘点了)，就跳过
                     continue;
-                if( edgePtr[ei^(vt^1)].weight && !u->next )
+                if( edgePtr[ei^(vt^1)].weight && !u->next )	//若是非中立点，且非末尾点，设置为未处理点，并移入末尾
                 {
                     u->next = nilNode;
                     last = last->next = u;
                 }
-                if( ej > 0 && vtxPtr+edgePtr[ej].dst == v2 )
+                if( ej > 0 && vtxPtr+edgePtr[ej].dst == v2 )	//
                 {
                     orphans.push_back(u);
                     u->parent = ORPHAN;
