@@ -14,12 +14,38 @@ void Histogram::createHist(const Mat& img, Mat& mask)
 	//bool accumulate = false;	//是否累计之前记录
 	//calcHist( &img, 1, 0, mask, hist, 1, &histSize, &histRange, uniform, accumulate );
 
+	//int histSize = 256;
+
+	//hist.create(1, histSize, CV_32FC1); 
+	//int count = img.cols * img.rows;
+	//int maskCount = 0;
+
+	//vector<int> histCount(histSize, 0);
+	//for( int y = 0; y < img.rows; y++ )
+ //   {
+ //       for( int x = 0; x < img.cols; x++ )
+ //       {
+	//		if(mask.at<uchar>(y,x) > 0)
+	//		{
+	//			uchar value = img.at<uchar>(y,x);
+	//			histCount[value]++;
+	//		}
+	//	}
+	//}
+
+	//for(int i = 0; i < histCount.size(); i++)
+	//{
+	//	hist.at<float>(0,i) = (float)histCount[i] / count;
+	//}
+
+
 	int histSize = 256;
 
 	hist.create(1, histSize, CV_32FC1); 
 	int count = img.cols * img.rows;
+	int maskCount = 0;
 
-	vector<int> histTotal(histSize, 0);
+	vector<int> histCount(histSize, 0);
 	for( int y = 0; y < img.rows; y++ )
     {
         for( int x = 0; x < img.cols; x++ )
@@ -27,15 +53,17 @@ void Histogram::createHist(const Mat& img, Mat& mask)
 			if(mask.at<uchar>(y,x) > 0)
 			{
 				uchar value = img.at<uchar>(y,x);
-				histTotal[value]++;
+				histCount[value]++;
+				maskCount++;
 			}
 		}
 	}
 
-	for(int i = 0; i < histTotal.size(); i++)
+	for(int i = 0; i < histCount.size(); i++)
 	{
-		hist.at<float>(0,i) = (float)histTotal[i] / count;
+		hist.at<float>(0,i) = (float)histCount[i] / maskCount;
 	}
+
 
 }
 
