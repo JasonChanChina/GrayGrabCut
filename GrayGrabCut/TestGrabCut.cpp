@@ -310,7 +310,7 @@ int main( int argc, char** argv )
         cout << "\nDurn, couldn't read in " << argv[1] << endl;
         return 1;
     }
-	filename = "test.jpg";
+	//filename = "test.jpg";
     Mat image = imread( filename, 1);
 
     if( image.empty() )

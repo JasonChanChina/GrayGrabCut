@@ -146,15 +146,11 @@
     <ClInclude Include="gcgraph.hpp" />
     <ClInclude Include="GrayGrabCut.h" />
     <ClInclude Include="Histogram.h" />
-    <ClInclude Include="mexopencv.hpp" />
-    <ClInclude Include="MxArray.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GrayGrabCut.cpp" />
     <ClCompile Include="Histogram.cpp" />
-    <ClCompile Include="mexGrayGrabCut.cpp" />
-    <ClCompile Include="MxArray.cpp" />
     <ClCompile Include="TestGrabCut.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
