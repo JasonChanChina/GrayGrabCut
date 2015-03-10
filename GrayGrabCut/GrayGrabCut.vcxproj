@@ -147,10 +147,12 @@
     <ClInclude Include="GrayGrabCut.h" />
     <ClInclude Include="Histogram.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Superpixel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GrayGrabCut.cpp" />
     <ClCompile Include="Histogram.cpp" />
+    <ClCompile Include="Superpixel.cpp" />
     <ClCompile Include="TestGrabCut.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

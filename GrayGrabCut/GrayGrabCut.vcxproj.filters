@@ -27,6 +27,9 @@
     <ClInclude Include="Histogram.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Superpixel.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GrayGrabCut.cpp">
@@ -36,6 +39,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Histogram.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Superpixel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
