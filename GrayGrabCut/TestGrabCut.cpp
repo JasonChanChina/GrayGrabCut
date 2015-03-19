@@ -55,8 +55,10 @@ public:
     void reset();
     void setImageAndWinName( const Mat& _image, const string& _winName );
     void showImage() const;
+	void showImage(const Mat& image) const;
     void mouseClick( int event, int x, int y, int flags, void* param );
     int nextIter();
+	int nextSuperIter();
     int getIterCount() const { return iterCount; }
 private:
     void setRectInMask();
@@ -74,6 +76,19 @@ private:
     vector<Point> fgdPxls, bgdPxls, prFgdPxls, prBgdPxls;
     int iterCount;
 	GrayGrabCut grab;
+
+
+	vector<int> pixelLabels;
+	int kindOfLabels;
+	vector<vector<int> > arcs;
+	vector<Vec3d> centers;
+	vector<vector<int> > contains;
+	vector<int> SPMask;
+	Mat _bgdModel;
+	Mat _fgdModel;
+	int iterCount;
+	double _beta;
+
 };
 
 void GCApplication::reset()
@@ -139,6 +154,21 @@ void GCApplication::showImage() const
 
 
 }
+
+void GCApplication::showImage(const Mat& curImage) const
+{
+    if( curImage.empty() || winName->empty() )
+        return;
+
+
+    Mat res;
+	res.create(image->size(), image->type());
+	res.setTo(255);				//设置空白区域颜色
+
+    imshow( *winName, res );
+
+}
+
 
 void GCApplication::setRectInMask()
 {
@@ -259,6 +289,8 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
     }
 }
 
+
+
 int GCApplication::nextIter()
 {
 	double begin = (double)getTickCount();
@@ -289,6 +321,37 @@ int GCApplication::nextIter()
 
     return iterCount;
 }
+
+
+int GCApplication::nextSuperIter()
+{
+	double begin = (double)getTickCount();
+    if( isInitialized )
+		grab.graySupergrabCut(pixelLabels, kindOfLabels, arcs, centers,  contains,  SPMask,  _bgdModel, _fgdModel,iterCount, _beta, true);
+    else
+    {
+        if( rectState != SET )
+            return iterCount;
+		if(lblsState == SET || prLblsState == SET )
+			grab.graySupergrabCut(pixelLabels, kindOfLabels, arcs, centers,  contains,  SPMask,  _bgdModel, _fgdModel,iterCount, _beta, true);
+
+        isInitialized = true;
+    }
+
+	double end = (double)getTickCount();
+	double time = (end-begin)/getTickFrequency();
+	cout<<"Time="<<time<<endl;
+
+    iterCount++;
+
+    bgdPxls.clear(); fgdPxls.clear();
+    prBgdPxls.clear(); prFgdPxls.clear();
+
+
+    return iterCount;
+}
+
+
 
 GCApplication gcapp;
 
@@ -331,32 +394,73 @@ int main( int argc, char** argv )
     gcapp.setImageAndWinName( grayImage, winName );
     gcapp.showImage();
 
+	int iterCount = 0;
+	int newIterCount = 0;
+
+
+
+	SLICO slico;
+	vector<int> pixelLabels;			//记录每个像素的标记
+	int kindOfLabels;					//记录标记多少种，即超像素多少个
+
+	vector<vector<int> > arcs;		// 记录超像素之间边关系，正方形表格(kindOfLabels * kindOfLabels)
+	vector<Vec3d> centers;			//	记录每个超像素的平均 颜色+位置值，gray + x +　y
+	vector<vector<int> > contains;	//每个超像素包含哪些像素index
+
+	Mat grayImage2 = grayImage.clone();
+	Scalar lineColor = Scalar(0,0,0);
+
     for(;;)
     {
-        int c = waitKey(0);
-        switch( (char) c )
-        {
-        case '\x1b':
-            cout << "Exiting ..." << endl;
-            goto exit_main;
-        case 'r':
-            cout << endl;
-            gcapp.reset();
-            gcapp.showImage();
-            break;
-        case 'n':
-            int iterCount = gcapp.getIterCount();
-            cout << "<" << iterCount << "... ";
-            int newIterCount = gcapp.nextIter();
-            if( newIterCount > iterCount )
-            {
-                gcapp.showImage();
-                cout << iterCount << ">" << endl;
-            }
-            else
-                cout << "rect must be determined>" << endl;
-            break;
-        }
+		int c = waitKey(0);
+		if(c == '\x1b')
+		{
+			cout << "Exiting ..." << endl;
+			goto exit_main;
+		}else if(c == 'r')
+		{
+			cout << endl;
+			gcapp.reset();
+			gcapp.showImage();
+		}else if(c == 's')//superpixels
+		{
+			cout << ">superpixels start" << endl;
+			slico.DoSuperpixelSegmentation_ForGivenMat(grayImage, pixelLabels, kindOfLabels);
+			slico.GetArcAndCenterOfSuperpixels(grayImage2, pixelLabels, kindOfLabels, arcs, centers, contains);
+			slico.DrawContoursAroundSegments(grayImage2, pixelLabels, lineColor);
+			gcapp.showImage(grayImage2);
+			cout << ">superpixels end" << endl;
+		}else if(c == 'n')//pixel cut
+		{
+			cout << ">pixel cut start" << endl;
+			iterCount = gcapp.getIterCount();
+			cout << "<" << iterCount << "... ";
+			newIterCount = gcapp.nextIter();
+			if( newIterCount > iterCount )
+			{
+				gcapp.showImage();
+				cout << iterCount << ">" << endl;
+			}
+			else
+				cout << "rect must be determined>" << endl;
+			cout << ">pixel cut end" << endl;
+		}else if(c == 'm')//superpixel cut
+		{
+			cout << ">superpixel cut start" << endl;
+			iterCount = gcapp.getIterCount();
+			cout << "<" << iterCount << "... ";
+			newIterCount = gcapp.nextSuperIter();
+			if( newIterCount > iterCount )
+			{
+				gcapp.showImage();
+				cout << iterCount << ">" << endl;
+			}
+			else
+				cout << "rect must be determined>" << endl;
+			cout << ">superpixel cut end" << endl;
+		}
+
+
     }
 
 exit_main:

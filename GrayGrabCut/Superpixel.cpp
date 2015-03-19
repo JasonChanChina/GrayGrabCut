@@ -11,132 +11,45 @@ const int dy8[8] = { 0, -1, -1, -1, 0, 1, 1,  1};
 
 SLICO::SLICO()
 {
-	m_lvec = NULL;
-	m_avec = NULL;
-	m_bvec = NULL;
+	m_gvec = NULL;
 
-	m_lvecvec = NULL;
-	m_avecvec = NULL;
-	m_bvecvec = NULL;
+	m_gvecvec = NULL;
 }
 
 SLICO::~SLICO()
 {
-	if(m_lvec) delete [] m_lvec;
-	if(m_avec) delete [] m_avec;
-	if(m_bvec) delete [] m_bvec;
+	if(m_gvec) delete [] m_gvec;
 
 
-	if(m_lvecvec)
+	if(m_gvecvec)
 	{
-		for( int d = 0; d < m_depth; d++ ) delete [] m_lvecvec[d];
-		delete [] m_lvecvec;
+		for( int d = 0; d < m_depth; d++ ) delete [] m_gvecvec[d];
+		delete [] m_gvecvec;
 	}
-	if(m_avecvec)
-	{
-		for( int d = 0; d < m_depth; d++ ) delete [] m_avecvec[d];
-		delete [] m_avecvec;
-	}
-	if(m_bvecvec)
-	{
-		for( int d = 0; d < m_depth; d++ ) delete [] m_bvecvec[d];
-		delete [] m_bvecvec;
-	}
+	
 }
 
-
-void SLICO::RGB2XYZ(
-	const int&		sR,
-	const int&		sG,
-	const int&		sB,
-	double&			X,
-	double&			Y,
-	double&			Z)
-{
-	double R = sR/255.0;
-	double G = sG/255.0;
-	double B = sB/255.0;
-
-	double r, g, b;
-
-	if(R <= 0.04045)	r = R/12.92;
-	else				r = pow((R+0.055)/1.055,2.4);
-	if(G <= 0.04045)	g = G/12.92;
-	else				g = pow((G+0.055)/1.055,2.4);
-	if(B <= 0.04045)	b = B/12.92;
-	else				b = pow((B+0.055)/1.055,2.4);
-
-	X = r*0.4124564 + g*0.3575761 + b*0.1804375;
-	Y = r*0.2126729 + g*0.7151522 + b*0.0721750;
-	Z = r*0.0193339 + g*0.1191920 + b*0.9503041;
-}
-
-
-void SLICO::RGB2LAB(const int& sR, const int& sG, const int& sB, double& lval, double& aval, double& bval)
-{
-	//------------------------
-	// sRGB to XYZ conversion
-	//------------------------
-	double X, Y, Z;
-	RGB2XYZ(sR, sG, sB, X, Y, Z);
-
-	//------------------------
-	// XYZ to LAB conversion
-	//------------------------
-	double epsilon = 0.008856;	//actual CIE standard
-	double kappa   = 903.3;		//actual CIE standard
-
-	double Xr = 0.950456;	//reference white
-	double Yr = 1.0;		//reference white
-	double Zr = 1.088754;	//reference white
-
-	double xr = X/Xr;
-	double yr = Y/Yr;
-	double zr = Z/Zr;
-
-	double fx, fy, fz;
-	if(xr > epsilon)	fx = pow(xr, 1.0/3.0);
-	else				fx = (kappa*xr + 16.0)/116.0;
-	if(yr > epsilon)	fy = pow(yr, 1.0/3.0);
-	else				fy = (kappa*yr + 16.0)/116.0;
-	if(zr > epsilon)	fz = pow(zr, 1.0/3.0);
-	else				fz = (kappa*zr + 16.0)/116.0;
-
-	lval = 116.0*fy-16.0;
-	aval = 500.0*(fx-fy);
-	bval = 200.0*(fy-fz);
-}
 
 
 void SLICO::DoRGBtoLABConversion(
 	const unsigned int*&		ubuff,
-	double*&					lvec,
-	double*&					avec,
-	double*&					bvec)
+	double*&					gvec)
 {
 	int sz = m_width*m_height;
-	lvec = new double[sz];
-	avec = new double[sz];
-	bvec = new double[sz];
+	gvec = new double[sz];
 
 	for( int j = 0; j < sz; j++ )
 	{
-		int r = (ubuff[j] >> 16) & 0xFF;
-		int g = (ubuff[j] >>  8) & 0xFF;
-		int b = (ubuff[j]      ) & 0xFF;
-
-		RGB2LAB( r, g, b, lvec[j], avec[j], bvec[j] );
+		int g = (ubuff[j]      ) & 0xFF;
+		gvec[j] = g;
 	}
 }
 
 
 
 //绘制边界
-void SLICO::DrawContoursAroundSegments(Mat& mat, vector<int> klabels, Scalar color)
+void SLICO::DrawContoursAroundSegments(Mat& mat, vector<int> pixelLabels, Scalar color)
 {
-	const int dx8[8] = {-1, -1,  0,  1, 1, 1, 0, -1};
-	const int dy8[8] = { 0, -1, -1, -1, 0, 1, 1,  1};
-
 	Vec3d cvColor;
 	cvColor[0] = 255;//color[0];
 	cvColor[1] = 255;//color[1];
@@ -175,7 +88,7 @@ void SLICO::DrawContoursAroundSegments(Mat& mat, vector<int> klabels, Scalar col
 					int newIndex = newr * width + newc;
 					if(false == istaken[newIndex/channels])
 					{
-						if(klabels[i/channels] != klabels[newIndex/channels])
+						if(pixelLabels[i/channels] != pixelLabels[newIndex/channels])
 						{
 							np++;
 						}
@@ -213,7 +126,7 @@ void SLICO::DrawContoursAroundSegments(Mat& mat, vector<int> klabels, Scalar col
 						int newIndex = newr * width + newc;
 						if(false == istaken[newIndex/channels])
 						{
-							if(klabels[index/channels] != klabels[newIndex/channels])
+							if(pixelLabels[index/channels] != pixelLabels[newIndex/channels])
 							{
 								np++;
 							}
@@ -252,7 +165,7 @@ void SLICO::DrawContoursAroundSegments(Mat& mat, vector<int> klabels, Scalar col
 				if( (newc >= 0 && newc < width) && (newr >= 0 && newr < height) )
 				{
 					int newIndex = newr * width + newc;
-					if(klabels[i/channels] != klabels[newIndex/channels])
+					if(pixelLabels[i/channels] != pixelLabels[newIndex/channels])
 					{
 						isSidePixel = true;
 						break;
@@ -286,7 +199,7 @@ void SLICO::DrawContoursAroundSegments(Mat& mat, vector<int> klabels, Scalar col
 					if( (newc >= 0 && newc < width) && (newr >= 0 && newr < height) )
 					{
 						int newIndex = newr * width + newc;
-						if(klabels[index/channels] != klabels[newIndex/channels])
+						if(pixelLabels[index/channels] != pixelLabels[newIndex/channels])
 						{
 							isSidePixel = true;
 							break;
@@ -311,9 +224,7 @@ void SLICO::DrawContoursAroundSegments(Mat& mat, vector<int> klabels, Scalar col
 
 
 void SLICO::DetectLabEdges(
-	const double*				lvec,
-	const double*				avec,
-	const double*				bvec,
+	const double*				gvec,
 	const int&					width,
 	const int&					height,
 	vector<double>&				edges)
@@ -327,13 +238,8 @@ void SLICO::DetectLabEdges(
 		{
 			int i = j*width+k;
 
-			double dx = (lvec[i-1]-lvec[i+1])*(lvec[i-1]-lvec[i+1]) +
-						(avec[i-1]-avec[i+1])*(avec[i-1]-avec[i+1]) +
-						(bvec[i-1]-bvec[i+1])*(bvec[i-1]-bvec[i+1]);
-
-			double dy = (lvec[i-width]-lvec[i+width])*(lvec[i-width]-lvec[i+width]) +
-						(avec[i-width]-avec[i+width])*(avec[i-width]-avec[i+width]) +
-						(bvec[i-width]-bvec[i+width])*(bvec[i-width]-bvec[i+width]);
+			double dx = (gvec[i-1]-gvec[i+1])*(gvec[i-1]-gvec[i+1]);
+			double dy = (gvec[i-width]-gvec[i+width])*(gvec[i-width]-gvec[i+width]);
 
 			//edges[i] = (sqrt(dx) + sqrt(dy));
 			edges[i] = (dx + dy);
@@ -343,9 +249,7 @@ void SLICO::DetectLabEdges(
 
 
 void SLICO::PerturbSeeds(
-	vector<double>&				kseedsl,
-	vector<double>&				kseedsa,
-	vector<double>&				kseedsb,
+	vector<double>&				kseedsg,
 	vector<double>&				kseedsx,
 	vector<double>&				kseedsy,
 	const vector<double>&		edges)
@@ -353,7 +257,7 @@ void SLICO::PerturbSeeds(
 	const int dx8[8] = {-1, -1,  0,  1, 1, 1, 0, -1};
 	const int dy8[8] = { 0, -1, -1, -1, 0, 1, 1,  1};
 	
-	int numseeds = kseedsl.size();
+	int numseeds = kseedsg.size();
 
 	for( int n = 0; n < numseeds; n++ )
 	{
@@ -380,18 +284,14 @@ void SLICO::PerturbSeeds(
 		{
 			kseedsx[n] = storeind%m_width;
 			kseedsy[n] = storeind/m_width;
-			kseedsl[n] = m_lvec[storeind];
-			kseedsa[n] = m_avec[storeind];
-			kseedsb[n] = m_bvec[storeind];
+			kseedsg[n] = m_gvec[storeind];
 		}
 	}
 }
 
 
 void SLICO::GetLABXYSeeds_ForGivenStepSize(
-	vector<double>&				kseedsl,
-	vector<double>&				kseedsa,
-	vector<double>&				kseedsb,
+	vector<double>&				kseedsg,
 	vector<double>&				kseedsx,
 	vector<double>&				kseedsy,
 	const int&					STEP,
@@ -417,9 +317,7 @@ void SLICO::GetLABXYSeeds_ForGivenStepSize(
 	//-------------------------
 	numseeds = xstrips*ystrips;
 	//-------------------------
-	kseedsl.resize(numseeds);
-	kseedsa.resize(numseeds);
-	kseedsb.resize(numseeds);
+	kseedsg.resize(numseeds);
 	kseedsx.resize(numseeds);
 	kseedsy.resize(numseeds);
 
@@ -431,9 +329,7 @@ void SLICO::GetLABXYSeeds_ForGivenStepSize(
 			int xe = x*xerrperstrip;
 			int i = (y*STEP+yoff+ye)*m_width + (x*STEP+xoff+xe);
 			
-			kseedsl[n] = m_lvec[i];
-			kseedsa[n] = m_avec[i];
-			kseedsb[n] = m_bvec[i];
+			kseedsg[n] = m_gvec[i];
 			kseedsx[n] = (x*STEP+xoff+xe);
 			kseedsy[n] = (y*STEP+yoff+ye);
 			n++;
@@ -443,15 +339,13 @@ void SLICO::GetLABXYSeeds_ForGivenStepSize(
 	
 	if(perturbseeds)
 	{
-		PerturbSeeds(kseedsl, kseedsa, kseedsb, kseedsx, kseedsy, edgemag);
+		PerturbSeeds(kseedsg, kseedsx, kseedsy, edgemag);
 	}
 }
 
 
 void SLICO::GetLABXYSeeds_ForGivenK(
-	vector<double>&				kseedsl,
-	vector<double>&				kseedsa,
-	vector<double>&				kseedsb,
+	vector<double>&				kseedsg,
 	vector<double>&				kseedsx,
 	vector<double>&				kseedsy,
 	const int&					K,
@@ -485,9 +379,7 @@ void SLICO::GetLABXYSeeds_ForGivenK(
 			//kseedsb[n] = m_bvec[i];
 			//kseedsx[n] = X;
 			//kseedsy[n] = Y;
-			kseedsl.push_back(m_lvec[i]);
-			kseedsa.push_back(m_avec[i]);
-			kseedsb.push_back(m_bvec[i]);
+			kseedsg.push_back(m_gvec[i]);
 			kseedsx.push_back(X);
 			kseedsy.push_back(Y);
 			n++;
@@ -497,24 +389,22 @@ void SLICO::GetLABXYSeeds_ForGivenK(
 
 	if(perturbseeds)
 	{
-		PerturbSeeds(kseedsl, kseedsa, kseedsb, kseedsx, kseedsy, edgemag);
+		PerturbSeeds(kseedsg, kseedsx, kseedsy, edgemag);
 	}
 }
 
 
 
 void SLICO::PerformSuperpixelSegmentation_VariableSandM(
-	vector<double>&				kseedsl,
-	vector<double>&				kseedsa,
-	vector<double>&				kseedsb,
+	vector<double>&				kseedsg,
 	vector<double>&				kseedsx,
 	vector<double>&				kseedsy,
-	int*						klabels,
+	int*						pixelLabels,
 	const int&					STEP,
 	const int&					NUMITR)
 {
 	int sz = m_width*m_height;
-	const int numk = kseedsl.size();
+	const int numk = kseedsg.size();
 	//double cumerr(99999.9);
 	int numitr(0);
 
@@ -524,17 +414,15 @@ void SLICO::PerformSuperpixelSegmentation_VariableSandM(
 	if(STEP < 10) offset = STEP*1.5;
 	//----------------
 
-	vector<double> sigmal(numk, 0);
-	vector<double> sigmaa(numk, 0);
-	vector<double> sigmab(numk, 0);
+	vector<double> sigmag(numk, 0);
 	vector<double> sigmax(numk, 0);
 	vector<double> sigmay(numk, 0);
 	vector<int> clustersize(numk, 0);
 	vector<double> inv(numk, 0);//to store 1/clustersize[k] values
 	vector<double> distxy(sz, DBL_MAX);
-	vector<double> distlab(sz, DBL_MAX);
+	vector<double> distg(sz, DBL_MAX);
 	vector<double> distvec(sz, DBL_MAX);
-	vector<double> maxlab(numk, 10*10);//THIS IS THE VARIABLE VALUE OF M, just start with 10
+	vector<double> maxg(numk, 10*10);//THIS IS THE VARIABLE VALUE OF M, just start with 10
 	vector<double> maxxy(numk, STEP*STEP);//THIS IS THE VARIABLE VALUE OF M, just start with 10
 
 	double invxywt = 1.0/(STEP*STEP);//NOTE: this is different from how usual SLIC/LKM works
@@ -561,26 +449,21 @@ void SLICO::PerformSuperpixelSegmentation_VariableSandM(
 					int i = y*m_width + x;
 					_ASSERT( y < m_height && x < m_width && y >= 0 && x >= 0 );
 
-					double l = m_lvec[i];
-					double a = m_avec[i];
-					double b = m_bvec[i];
-
-					distlab[i] =	(l - kseedsl[n])*(l - kseedsl[n]) +
-									(a - kseedsa[n])*(a - kseedsa[n]) +
-									(b - kseedsb[n])*(b - kseedsb[n]);
+					double g = m_gvec[i];
+					distg[i] = (g-kseedsg[n])*(g-kseedsg[n]);
 
 					distxy[i] =		(x - kseedsx[n])*(x - kseedsx[n]) +
 									(y - kseedsy[n])*(y - kseedsy[n]);
 
 					//------------------------------------------------------------------------
-					double dist = distlab[i]/maxlab[n] + distxy[i]*invxywt;//only varying m, prettier superpixels
+					double dist = distg[i]/maxg[n] + distxy[i]*invxywt;//only varying m, prettier superpixels
 					//double dist = distlab[i]/maxlab[n] + distxy[i]/maxxy[n];//varying both m and S
 					//------------------------------------------------------------------------
 					
 					if( dist < distvec[i] )
 					{
 						distvec[i] = dist;
-						klabels[i]  = n;
+						pixelLabels[i]  = n;
 					}
 				}
 			}
@@ -590,35 +473,31 @@ void SLICO::PerformSuperpixelSegmentation_VariableSandM(
 		//-----------------------------------------------------------------
 		if(0 == numitr)
 		{
-			maxlab.assign(numk,1);
+			maxg.assign(numk,1);
 			maxxy.assign(numk,1);
 		}
 		{for( int i = 0; i < sz; i++ )
 		{
-			if(maxlab[klabels[i]] < distlab[i]) maxlab[klabels[i]] = distlab[i];
-			if(maxxy[klabels[i]] < distxy[i]) maxxy[klabels[i]] = distxy[i];
+			if(maxg[pixelLabels[i]] < distg[i]) maxg[pixelLabels[i]] = distg[i];
+			if(maxxy[pixelLabels[i]] < distxy[i]) maxxy[pixelLabels[i]] = distxy[i];
 		}}
 		//-----------------------------------------------------------------
 		// Recalculate the centroid and store in the seed values
 		//-----------------------------------------------------------------
-		sigmal.assign(numk, 0);
-		sigmaa.assign(numk, 0);
-		sigmab.assign(numk, 0);
+		sigmag.assign(numk, 0);
 		sigmax.assign(numk, 0);
 		sigmay.assign(numk, 0);
 		clustersize.assign(numk, 0);
 
 		for( int j = 0; j < sz; j++ )
 		{
-			int temp = klabels[j];
-			_ASSERT(klabels[j] >= 0);
-			sigmal[klabels[j]] += m_lvec[j];
-			sigmaa[klabels[j]] += m_avec[j];
-			sigmab[klabels[j]] += m_bvec[j];
-			sigmax[klabels[j]] += (j%m_width);
-			sigmay[klabels[j]] += (j/m_width);
+			int temp = pixelLabels[j];
+			_ASSERT(pixelLabels[j] >= 0);
+			sigmag[pixelLabels[j]] += m_gvec[j];
+			sigmax[pixelLabels[j]] += (j%m_width);
+			sigmay[pixelLabels[j]] += (j/m_width);
 
-			clustersize[klabels[j]]++;
+			clustersize[pixelLabels[j]]++;
 		}
 
 		{for( int k = 0; k < numk; k++ )
@@ -630,9 +509,7 @@ void SLICO::PerformSuperpixelSegmentation_VariableSandM(
 		
 		{for( int k = 0; k < numk; k++ )
 		{
-			kseedsl[k] = sigmal[k]*inv[k];
-			kseedsa[k] = sigmaa[k]*inv[k];
-			kseedsb[k] = sigmab[k]*inv[k];
+			kseedsg[k] = sigmag[k]*inv[k];
 			kseedsx[k] = sigmax[k]*inv[k];
 			kseedsy[k] = sigmay[k]*inv[k];
 		}}
@@ -646,7 +523,7 @@ void SLICO::EnforceLabelConnectivity(
 	const int&					width,
 	const int&					height,
 	int*						nlabels,//new labels
-	int&						numlabels,//the number of labels changes in the end if segments are removed
+	int&						kindOfLabels,//the number of labels changes in the end if segments are removed
 	const int&					K) //the number of superpixels desired by the user
 {
 //	const int dx8[8] = {-1, -1,  0,  1, 1, 1, 0, -1};
@@ -731,7 +608,7 @@ void SLICO::EnforceLabelConnectivity(
 			oindex++;
 		}
 	}
-	numlabels = label;
+	kindOfLabels = label;
 
 	if(xvec) delete [] xvec;
 	if(yvec) delete [] yvec;
@@ -742,14 +619,15 @@ void SLICO::PerformSLICO_ForGivenStepSize(
 	const unsigned int*			ubuff,
 	const int					width,
 	const int					height,
-	int*						klabels,
-	int&						numlabels,
+	int*						pixelLabels,
+	int&						kindOfLabels,
 	const int&					STEP,
 	const double&				m)
 {
-	vector<double> kseedsl(0);
-	vector<double> kseedsa(0);
-	vector<double> kseedsb(0);
+	vector<double> kseedsg(0);
+	//vector<double> kseedsl(0);
+	//vector<double> kseedsa(0);
+	//vector<double> kseedsb(0);
 	vector<double> kseedsx(0);
 	vector<double> kseedsy(0);
 
@@ -757,25 +635,25 @@ void SLICO::PerformSLICO_ForGivenStepSize(
 	m_width  = width;
 	m_height = height;
 	int sz = m_width*m_height;
-	//klabels.resize( sz, -1 );
+	//pixelLabels.resize( sz, -1 );
 	//--------------------------------------------------
-	//klabels = new int[sz];
-	for( int s = 0; s < sz; s++ ) klabels[s] = -1;
+	//pixelLabels = new int[sz];
+	for( int s = 0; s < sz; s++ ) pixelLabels[s] = -1;
 	//--------------------------------------------------
-	DoRGBtoLABConversion(ubuff, m_lvec, m_avec, m_bvec);
+	DoRGBtoLABConversion(ubuff, m_gvec);
 	//--------------------------------------------------
 
 	bool perturbseeds(true);
 	vector<double> edgemag(0);
-	if(perturbseeds) DetectLabEdges(m_lvec, m_avec, m_bvec, m_width, m_height, edgemag);
-	GetLABXYSeeds_ForGivenStepSize(kseedsl, kseedsa, kseedsb, kseedsx, kseedsy, STEP, perturbseeds, edgemag);
+	if(perturbseeds) DetectLabEdges(m_gvec, m_width, m_height, edgemag);
+	GetLABXYSeeds_ForGivenStepSize(kseedsg, kseedsx, kseedsy, STEP, perturbseeds, edgemag);
 
-	PerformSuperpixelSegmentation_VariableSandM(kseedsl,kseedsa,kseedsb,kseedsx,kseedsy,klabels,STEP,10);
-	numlabels = kseedsl.size();
+	PerformSuperpixelSegmentation_VariableSandM(kseedsg,kseedsx,kseedsy,pixelLabels,STEP,10);
+	kindOfLabels = kseedsg.size();
 
 	int* nlabels = new int[sz];
-	EnforceLabelConnectivity(klabels, m_width, m_height, nlabels, numlabels, double(sz)/double(STEP*STEP));
-	{for(int i = 0; i < sz; i++ ) klabels[i] = nlabels[i];}
+	EnforceLabelConnectivity(pixelLabels, m_width, m_height, nlabels, kindOfLabels, double(sz)/double(STEP*STEP));
+	{for(int i = 0; i < sz; i++ ) pixelLabels[i] = nlabels[i];}
 	if(nlabels) delete [] nlabels;
 }
 
@@ -784,14 +662,12 @@ void SLICO::PerformSLICO_ForGivenK(
 	const unsigned int*			ubuff,
 	const int					width,
 	const int					height,
-	int*						klabels,
-	int&						numlabels,
+	int*						pixelLabels,
+	int&						kindOfLabels,
 	const int&					K,//required number of superpixels
 	const double&				m)//weight given to spatial distance
 {
-	vector<double> kseedsl(0);
-	vector<double> kseedsa(0);
-	vector<double> kseedsb(0);
+	vector<double> kseedsg(0);
 	vector<double> kseedsx(0);
 	vector<double> kseedsy(0);
 
@@ -800,52 +676,48 @@ void SLICO::PerformSLICO_ForGivenK(
 	m_height = height;
 	int sz = m_width*m_height;
 	//--------------------------------------------------
-	//if(0 == klabels) klabels = new int[sz];
-	for( int s = 0; s < sz; s++ ) klabels[s] = -1;
+	//if(0 == pixelLabels) pixelLabels = new int[sz];
+	for( int s = 0; s < sz; s++ ) pixelLabels[s] = -1;
 	//--------------------------------------------------
 	if(1)//LAB
 	{
-		DoRGBtoLABConversion(ubuff, m_lvec, m_avec, m_bvec);
+		DoRGBtoLABConversion(ubuff, m_gvec);
 	}
 	else//RGB
 	{
-		m_lvec = new double[sz]; m_avec = new double[sz]; m_bvec = new double[sz];
+		m_gvec = new double[sz];
 		for( int i = 0; i < sz; i++ )
 		{
-			m_lvec[i] = ubuff[i] >> 16 & 0xff;
-			m_avec[i] = ubuff[i] >>  8 & 0xff;
-			m_bvec[i] = ubuff[i]       & 0xff;
+			m_gvec[i] = ubuff[i]       & 0xff;
 		}
 	}
 	//--------------------------------------------------
 
 	bool perturbseeds(true);
 	vector<double> edgemag(0);
-	if(perturbseeds) DetectLabEdges(m_lvec, m_avec, m_bvec, m_width, m_height, edgemag);
-	GetLABXYSeeds_ForGivenK(kseedsl, kseedsa, kseedsb, kseedsx, kseedsy, K, perturbseeds, edgemag);
+	if(perturbseeds) DetectLabEdges(m_gvec, m_width, m_height, edgemag);
+	GetLABXYSeeds_ForGivenK(kseedsg, kseedsx, kseedsy, K, perturbseeds, edgemag);
 
 	int STEP = sqrt(double(sz)/double(K)) + 2.0;//adding a small value in the even the STEP size is too small.
-	//PerformSuperpixelSLIC(kseedsl, kseedsa, kseedsb, kseedsx, kseedsy, klabels, STEP, edgemag, m);
-	PerformSuperpixelSegmentation_VariableSandM(kseedsl,kseedsa,kseedsb,kseedsx,kseedsy,klabels,STEP,10);
-	numlabels = kseedsl.size();
+	//PerformSuperpixelSLIC(kseedsl, kseedsa, kseedsb, kseedsx, kseedsy, pixelLabels, STEP, edgemag, m);
+	PerformSuperpixelSegmentation_VariableSandM(kseedsg,kseedsx,kseedsy,pixelLabels,STEP,10);
+	kindOfLabels = kseedsg.size();
 
 	int* nlabels = new int[sz];
-	EnforceLabelConnectivity(klabels, m_width, m_height, nlabels, numlabels, K);
-	{for(int i = 0; i < sz; i++ ) klabels[i] = nlabels[i];}
+	EnforceLabelConnectivity(pixelLabels, m_width, m_height, nlabels, kindOfLabels, K);
+	{for(int i = 0; i < sz; i++ ) pixelLabels[i] = nlabels[i];}
 	if(nlabels) delete [] nlabels;
 }
 
 
 
-void SLICO::GetArcAndCenterOfSuperpixels( const Mat& img, vector<int>& klabels, int& numlabels, vector<vector<int> >& arcs, vector<Vec6d>& centers, vector<vector<int> >& spLabels)	
+void SLICO::GetArcAndCenterOfSuperpixels( const Mat& img, vector<int>& pixelLabels, int& kindOfLabels, vector<vector<int> >& arcs, vector<Vec3d>& centers, vector<vector<int> >& contains)	
 {
-
-
 	int width = img.cols;
 	int height = img.rows;
 
 	////Arcs
-	//vector<hash_set<int> > sets(numlabels);
+	//vector<hash_set<int> > sets(kindOfLabels);
 	//for(int r = 0; r < height; r+=2)
 	//{
 	//	for(int c = 0; c < width; c+=2)
@@ -859,10 +731,10 @@ void SLICO::GetArcAndCenterOfSuperpixels( const Mat& img, vector<int>& klabels, 
 	//			if((height > newr && newr >= 0) && (width > newc && newc >= 0))
 	//			{
 	//				int newIndex = newr * width + newc;
-	//				if(klabels[index] != klabels[newIndex])
+	//				if(pixelLabels[index] != pixelLabels[newIndex])
 	//				{
-	//					int lmin = std::min(klabels[index], klabels[newIndex]);
-	//					int lmax = std::max(klabels[index], klabels[newIndex]);
+	//					int lmin = std::min(pixelLabels[index], pixelLabels[newIndex]);
+	//					int lmax = std::max(pixelLabels[index], pixelLabels[newIndex]);
 	//					sets[lmin].insert(lmax);
 	//					sets[lmax].insert(lmin);
 	//				}
@@ -871,9 +743,9 @@ void SLICO::GetArcAndCenterOfSuperpixels( const Mat& img, vector<int>& klabels, 
 	//	}
 	//}
 
-	//if(arcs.size() != numlabels) arcs.resize(numlabels);
+	//if(arcs.size() != kindOfLabels) arcs.resize(kindOfLabels);
 	//hash_set<int>::iterator iter;
-	//for(int i = 0; i < numlabels; i++)
+	//for(int i = 0; i < kindOfLabels; i++)
 	//{
 	//	arcs[i].clear();
 	//	for(iter = sets[i].begin(); iter != sets[i].end(); iter++)
@@ -884,17 +756,14 @@ void SLICO::GetArcAndCenterOfSuperpixels( const Mat& img, vector<int>& klabels, 
 
 
 	//Centers
-	vector<int> labelCount(numlabels,0);
+	vector<int> labelCount(kindOfLabels,0);
 
-	vector<double> sumA(numlabels, 0);
-	vector<double> sumR(numlabels, 0);
-	vector<double> sumG(numlabels, 0);
-	vector<double> sumB(numlabels, 0);
-	vector<double> sumX(numlabels, 0);
-	vector<double> sumY(numlabels, 0);
+	vector<double> sumG(kindOfLabels, 0);
+	vector<double> sumX(kindOfLabels, 0);
+	vector<double> sumY(kindOfLabels, 0);
 
 
-	spLabels.resize(numlabels);
+	contains.resize(kindOfLabels);
 
 	Point p;
 	int index = 0;
@@ -903,61 +772,56 @@ void SLICO::GetArcAndCenterOfSuperpixels( const Mat& img, vector<int>& klabels, 
         for( p.x = 0; p.x < img.cols; p.x++ )
         {
 			int index = p.y * width + p.x;
-			int label = klabels[index];
-			Vec3d color = img.at<Vec3b>(p);
+			int label = pixelLabels[index];
+			uint gray = img.at<uchar>(p);
 
 			labelCount[label]++;
 
-			sumR[label] += color[2];
-			sumG[label] += color[1];
-			sumB[label] += color[0];
+			sumG[label] += gray;
 			sumY[label] += p.y;
 			sumX[label] += p.x;
 
-			spLabels[label].push_back(index);
+			contains[label].push_back(index);
 		}
 	}
 
 	//int maxCount = -1;
 	//int minCount = INT_MAX;
-	Vec6d v6;
-	v6[0] = 0, v6[1] = 0, v6[2] = 0, v6[3] = 0, v6[4] = 0, v6[5] = 0;
-	if(centers.size() != numlabels) centers.resize(numlabels, v6);
-	for(int i = 0; i < numlabels; i++)
+	Vec3d v3;
+	v3[0] = 0, v3[1] = 0, v3[2] = 0;
+	if(centers.size() != kindOfLabels) centers.resize(kindOfLabels, v3);
+	for(int i = 0; i < kindOfLabels; i++)
 	{
-		sumR[i] /= labelCount[i];
 		sumG[i] /= labelCount[i];
-		sumB[i] /= labelCount[i];
 		sumX[i] /= labelCount[i];
 		sumY[i] /= labelCount[i];
 
-		int centerR = ((uint)(sumR[i]+0.5)) & 0xFF;
 		int centerG = ((uint)(sumG[i]+0.5)) & 0xFF;
-		int centerB = ((uint)(sumB[i]+0.5)) & 0xFF;
 
-		centers[i][0] = centerB;
-		centers[i][1] = centerG;
-		centers[i][2] = centerR;
-		centers[i][3] = labelCount[i];	//超像素大小（包含像素个数）
+		centers[i][0] = centerG;
 		//if(labelCount[i] > maxCount) maxCount = labelCount[i];
 		//if(labelCount[i] < minCount) minCount = labelCount[i];
 		//centers[i][3] = centerA;
-		centers[i][4] = sumX[i];
-		centers[i][5] = sumY[i];
+		centers[i][1] = sumX[i];
+		centers[i][2] = sumY[i];
+		//centers[i][3] = labelCount[i];	//超像素大小（包含像素个数）
 	}
 
 	//Arcs
-	if(arcs.size() != numlabels) arcs.resize(numlabels);
-	//cout<<"##########################max="<<maxCount<<"; min="<<minCount<<endl;
 
-	for(int i = 0; i < numlabels; i++)
+	arcs.resize(kindOfLabels);			//arcs是 kindOfLabels * kindOfLabels 的正方形表格
+	for(int i = 0; i < kindOfLabels; i++) 
+		arcs[i].resize(kindOfLabels, 0);
+
+	for(int i = 0; i < kindOfLabels; i++)
 	{
-		for(int j = 0; j < numlabels; j++)
+		for(int j = 0; j < kindOfLabels; j++)
 		{
 			if(i == j) continue;
-			if(abs(centers[j][4]-centers[i][4]) < m_size && abs(centers[j][5]-centers[i][5]) < m_size)
+			if(abs(centers[j][1]-centers[i][1]) < m_size && abs(centers[j][2]-centers[i][2]) < m_size)
 			{
-				arcs[i].push_back(j);
+				arcs[i][j] = 1;
+				arcs[j][i] = 1;
 			}
 
 		}
@@ -967,7 +831,7 @@ void SLICO::GetArcAndCenterOfSuperpixels( const Mat& img, vector<int>& klabels, 
 }
 
 
-void SLICO::DrawAverageColor(Mat &mat, vector<int>& klabels, vector<Vec6d>& centers)
+void SLICO::DrawAverageColor(Mat &mat, vector<int>& pixelLabels, vector<Vec6d>& centers)
 {
 		
 	for(int r = 0; r < mat.rows; r++)
@@ -975,7 +839,7 @@ void SLICO::DrawAverageColor(Mat &mat, vector<int>& klabels, vector<Vec6d>& cent
 		for(int c = 0; c < mat.cols; c++)
 		{
 			int pinIndex = r * mat.cols + c;
-			int spIndex = klabels[pinIndex];
+			int spIndex = pixelLabels[pinIndex];
 			Vec6d v6 = centers[spIndex];
 			Vec3d v3;
 			v3[0] = v6[0];
@@ -990,7 +854,7 @@ void SLICO::DrawAverageColor(Mat &mat, vector<int>& klabels, vector<Vec6d>& cent
 //=================================================================
 //对Mat图像进行分割
 //=================================================================
-void SLICO::DoSuperpixelSegmentation_ForGivenMat( const Mat& img, vector<int>& klabels, int& numlabels)							
+void SLICO::DoSuperpixelSegmentation_ForGivenMat( const Mat& img, vector<int>& pixelLabels, int& kindOfLabels)							
 {
 	int width = img.cols;
 	int height = img.rows;
@@ -1004,56 +868,25 @@ void SLICO::DoSuperpixelSegmentation_ForGivenMat( const Mat& img, vector<int>& k
     {
         for( p.x = 0; p.x < img.cols; p.x++ )
         {
-			Vec3d color = img.at<Vec3b>(p);
-			uint b = color[0];
-			uint g = color[1];
-			uint r = color[2];
-			uint rgb = (r<<16) | (g<<8) | (b);
+			uchar gray = img.at<uchar>(p);
 			int index = p.y * img.cols + p.x;
-			ubuff[index] = rgb;
+			ubuff[index] = gray;
 		}
 	}
 
 
-	//int nr = img.rows;
-	//int nc = img.cols;
-	//int channel = img.channels();
-	//if(img.isContinuous())
-	//{
-	//	nr = 1;
-	//	nc = nc * img.rows * channel;
-	//}
- //   for(int y = 0; y < nr; y++ )
- //   {
-	//	const uchar* data = img.ptr<uchar>(y);
- //       for(int x = 0; x < nc; x += channel )
- //       {
-	//		uint b = *(data+x);
-	//		uint g = *(data+x+1);
-	//		uint r = *(data+x+2);
-
-	//		uint rgb = (r<<16) | (g<<8) | (b);
-	//		int index = y * (nc/channel) + x/channel;
-	//		ubuff[index] = rgb;
-	//	}
-	//}
-
-
-
-
-
-	int* _klabels = (int*)malloc(sizeof(int)*size);
-	numlabels = 0;
+	int* _pixelLabels = (int*)malloc(sizeof(int)*size);
+	kindOfLabels = 0;
 	int STEP = 10;  // 10 =1536个 // 16=600个
 	double compactness = 20.0;
 
-	PerformSLICO_ForGivenStepSize(ubuff, width, height, _klabels, numlabels, STEP, compactness);
+	PerformSLICO_ForGivenStepSize(ubuff, width, height, _pixelLabels, kindOfLabels, STEP, compactness);
 	delete ubuff;
 
-	klabels.resize(size);
+	pixelLabels.resize(size);
 	for(int i = 0; i < size; i++)
-		klabels[i] = _klabels[i];
-	delete _klabels;
+		pixelLabels[i] = _pixelLabels[i];
+	delete _pixelLabels;
 }
 
 
