@@ -27,7 +27,10 @@
     <ClInclude Include="Histogram.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Superpixel.h">
+    <ClInclude Include="GCApplication.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SLICO.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -41,7 +44,10 @@
     <ClCompile Include="Histogram.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Superpixel.cpp">
+    <ClCompile Include="SLICO.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GCApplication.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

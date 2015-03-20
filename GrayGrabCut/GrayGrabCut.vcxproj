@@ -143,16 +143,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="GCApplication.h" />
     <ClInclude Include="gcgraph.hpp" />
     <ClInclude Include="GrayGrabCut.h" />
     <ClInclude Include="Histogram.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="Superpixel.h" />
+    <ClInclude Include="SLICO.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GCApplication.cpp" />
     <ClCompile Include="GrayGrabCut.cpp" />
     <ClCompile Include="Histogram.cpp" />
-    <ClCompile Include="Superpixel.cpp" />
+    <ClCompile Include="SLICO.cpp" />
     <ClCompile Include="TestGrabCut.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

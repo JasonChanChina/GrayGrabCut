@@ -36,7 +36,7 @@ void Histogram::createHist(const Mat& img, Mat& mask)
 
 }
 
-void Histogram::createSuperHist(vector<Vec3d>& centers, vector<int>& SPMask)
+void Histogram::createSuperHist(vector<Vec3d>& centers, vector<vector<int> >& contains, vector<int>& SPMask)
 {
 
 	int histSize = 256;
@@ -49,11 +49,15 @@ void Histogram::createSuperHist(vector<Vec3d>& centers, vector<int>& SPMask)
 
 	for(int i = 0; i < count; i++)
 	{
-		int gray = (int)centers[i][0];
-		if(gray > 255) gray = 255;
-		if(gray < 0) gray = 0;
-		histCount[gray]++;
-		maskCount++;
+		if(SPMask[i] > 0)
+		{
+			int gray = (int)(centers[i][0]+0.5);
+			if(gray > 255) gray = 255;
+			if(gray < 0) gray = 0;
+			int singleGrayCount = contains[i].size();
+			histCount[gray] += singleGrayCount;
+			maskCount += singleGrayCount;
+		}
 	}
 
 	for(int i = 0; i < histCount.size(); i++)
