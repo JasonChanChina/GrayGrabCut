@@ -49,6 +49,8 @@ int main()
 	cout<<" -> ";
 	string filename;
 	cin>>filename;
+
+
 	cout<<"======================================="<<endl;
 	help();
 
@@ -89,10 +91,13 @@ int main()
 		}else if(c == 's')//superpixels
 		{
 			cout << ">superpixels start" << endl;
-			
+			int step = 0;
+			cout<<"input superpixel step(if input 10, then size is 10*10):";
+			cin>>step;
+
 			double timeBegin = (double)getTickCount();
 
-			gcapp.superpixelSegmentation();
+			gcapp.superpixelSegmentation(step);
 			gcapp.showSuperImage();
 
 			double timeEnd = (double)getTickCount();

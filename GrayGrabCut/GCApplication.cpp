@@ -405,9 +405,9 @@ void GCApplication::mask2SPMask()
 
 
 
-void GCApplication::superpixelSegmentation()
+void GCApplication::superpixelSegmentation(int _step)
 {
-	slico.DoSuperpixelSegmentation_ForGivenMat(image, pixelLabels, kindOfLabels);
+	slico.DoSuperpixelSegmentation_ForGivenMat(image, pixelLabels, kindOfLabels, _step);
 	slico.GetArcAndCenterOfSuperpixels(superImage, pixelLabels, kindOfLabels, arcs, centers, contains);
 	slico.DrawContoursAroundSegments(superImage, pixelLabels, WHITE);
 	SPMask.resize(kindOfLabels, GC_PR_FGD);

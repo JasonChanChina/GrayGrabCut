@@ -10,7 +10,7 @@ public:
 	virtual ~SLICO();
 
 
-	void DoSuperpixelSegmentation_ForGivenMat( const Mat& img, vector<int>& pixelLabels, int& kindOfLabels);
+	void DoSuperpixelSegmentation_ForGivenMat( const Mat& img, vector<int>& pixelLabels, int& kindOfLabels, int _step);
 
 	void PerformSLICO_ForGivenStepSize(
 		const unsigned int*			ubuff,

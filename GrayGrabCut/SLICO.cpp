@@ -856,7 +856,7 @@ void SLICO::GetArcAndCenterOfSuperpixels( const Mat& img, vector<int>& pixelLabe
 //=================================================================
 //对Mat图像进行分割
 //=================================================================
-void SLICO::DoSuperpixelSegmentation_ForGivenMat( const Mat& img, vector<int>& pixelLabels, int& kindOfLabels)							
+void SLICO::DoSuperpixelSegmentation_ForGivenMat( const Mat& img, vector<int>& pixelLabels, int& kindOfLabels, int _step)							
 {
 	int width = img.cols;
 	int height = img.rows;
@@ -879,7 +879,7 @@ void SLICO::DoSuperpixelSegmentation_ForGivenMat( const Mat& img, vector<int>& p
 
 	int* _pixelLabels = (int*)malloc(sizeof(int)*size);
 	kindOfLabels = 0;
-	int STEP = 10;  // 10 =1536个 // 16=600个
+	int STEP = _step;  // 10 =1536个 // 16=600个
 	double compactness = 20.0;
 
 	PerformSLICO_ForGivenStepSize(ubuff, width, height, _pixelLabels, kindOfLabels, STEP, compactness);
