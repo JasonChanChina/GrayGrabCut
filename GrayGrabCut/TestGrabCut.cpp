@@ -20,7 +20,7 @@ static void help()
 		"\tm - next Super iteration\n"
         "\tn - next iteration\n"
         "\n"
-        "\tleft mouse button - set rectangle\n"
+        "\tCtrl+left mouse button - set rectangle\n"
         "\n"
 		"\tSHIFT+Left mouse button - set GC_PR_FGD pixels\n"
 		"\tSHIFT+Right mouse button - set GC_PR_BGD pixels\n"
@@ -40,19 +40,28 @@ static void on_mouse( int event, int x, int y, int flags, void* param )
     gcapp.mouseClick( event, x, y, flags, param );
 }
 
-int main( int argc, char** argv )
+int main()
 {
-    if( argc!=2 )
-    {
-        help();
-        return 1;
-    }
-    string filename = argv[1];
-    if( filename.empty() )
-    {
-        cout << "\nDurn, couldn't read in " << argv[1] << endl;
-        return 1;
-    }
+	cout<<"\t\tHello, welcome to SLICO_iterGraphCut!"<<endl;
+	cout<<"\t(Notice:program and images must be in same place.)"<<endl; 
+	cout<<endl;
+	cout<<"Please input the gray image name(no space)."<<endl;
+	cout<<" -> ";
+	string filename;
+	cin>>filename;
+	cout<<"======================================="<<endl;
+	help();
+    //if( argc!=2 )
+    //{
+    //    help();
+    //    return 1;
+    //}
+    //string filename = argv[1];
+    //if( filename.empty() )
+    //{
+    //    cout << "\nDurn, couldn't read in " << argv[1] << endl;
+    //    return 1;
+    //}
 	//filename = "test.jpg";
     //Mat image = imread( filename, 1);		//RGB
 	Mat grayImage=imread(filename,0);		//Gray

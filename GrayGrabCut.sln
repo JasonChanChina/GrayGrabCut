@@ -19,6 +19,7 @@ Global
 		{375F3411-D2CC-4662-9AF5-9E4760CAAE61}.Release|Win32.Build.0 = Release|Win32
 		{375F3411-D2CC-4662-9AF5-9E4760CAAE61}.Release|x64.ActiveCfg = Release|x64
 		{375F3411-D2CC-4662-9AF5-9E4760CAAE61}.Release|x64.Build.0 = Release|x64
+		{375F3411-D2CC-4662-9AF5-9E4760CAAE61}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
