@@ -8,14 +8,12 @@ using namespace std;
 
 static void help()
 {
-    cout << "\nThis program demonstrates GrabCut segmentation -- select an object in a region\n"
-            "and then grabcut will attempt to segment it out.\n"
-            "Call:\n"
-            "./graySuperpixelGrabcut <image_name>\n"
+    cout << 
         "\nSelect a rectangular area around the object you want to segment\n" <<
         "\nHot keys: \n"
         "\tESC - quit the program\n"
         "\tr - restore the original image\n"
+		"\tp - clear invalid region for image\n"
 		"\ts - Superpixel preProcess\n"
 		"\tm - next Super iteration\n"
         "\tn - next iteration\n"
@@ -40,6 +38,10 @@ static void on_mouse( int event, int x, int y, int flags, void* param )
     gcapp.mouseClick( event, x, y, flags, param );
 }
 
+
+
+
+
 int main()
 {
 	cout<<"\t\tHello, welcome to SLICO_iterGraphCut!"<<endl;
@@ -52,7 +54,6 @@ int main()
 
 
 	cout<<"======================================="<<endl;
-	help();
 
     //Mat image = imread( filename, 1);		//RGB
 	Mat grayImage=imread(filename,0);		//Gray
@@ -88,6 +89,22 @@ int main()
 			cout << endl;
 			gcapp.reset();
 			gcapp.show();
+		}else if(c == 'p')	//预处理，由于CT图是圆形的，对圆外无效区域染色
+		{
+			cout << ">clear invalid region start" << endl;
+
+			double timeBegin = (double)getTickCount();
+
+			gcapp.dyeInvalidRegion();
+			gcapp.show();
+
+
+			double timeEnd = (double)getTickCount();
+			double timeDelay = (timeEnd - timeBegin)/getTickFrequency();
+			cout<<"time:"<<timeDelay<<endl;
+
+
+			cout << ">clear invalid region end" << endl;
 		}else if(c == 's')//superpixels
 		{
 			cout << ">superpixels start" << endl;
@@ -97,12 +114,12 @@ int main()
 
 			double timeBegin = (double)getTickCount();
 
-			gcapp.superpixelSegmentation(step);
-			gcapp.showSuperImage();
+			int numOfKinds = gcapp.superpixelSegmentation(step);
+			gcapp.show();
 
 			double timeEnd = (double)getTickCount();
 			double timeDelay = (timeEnd - timeBegin)/getTickFrequency();
-			cout<<"time:"<<timeDelay<<endl;
+			cout<<"num:"<<numOfKinds<<", time:"<<timeDelay<<endl;
 
 
 			cout << ">superpixels end" << endl;

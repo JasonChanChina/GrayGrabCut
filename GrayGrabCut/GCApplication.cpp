@@ -5,14 +5,14 @@ const Scalar PINK = Scalar(230,130,255);
 const Scalar BLUE = Scalar(255,0,0);
 const Scalar LIGHTBLUE = Scalar(255,255,160);
 const Scalar GREEN = Scalar(0,255,0);
-
 const Scalar WHITE = Scalar(255,255,255);
 const Scalar BLACK = Scalar(0,0,0);
 
-const Scalar COLOR_FGD = RED;
-const Scalar COLOR_BGD = BLUE;
-const Scalar COLOR_PR_FGD = PINK;
-const Scalar COLOR_PR_BGD = LIGHTBLUE;
+const Scalar COLOR_RECT = Scalar(255,0,0);	//灰度图像只用到了第一分量，即255=白
+const Scalar COLOR_FGD = Scalar(128,0,0);
+const Scalar COLOR_BGD = Scalar(0,0,0);
+const Scalar COLOR_PR_FGD = Scalar(192,0,0);
+const Scalar COLOR_PR_BGD = Scalar(0,0,0);
 
 const int KEY_CTRL = CV_EVENT_FLAG_CTRLKEY;
 const int KEY_SHIFT = CV_EVENT_FLAG_SHIFTKEY;
@@ -145,8 +145,8 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
 				rect.width = std::min(rect.width, tempSize.width-rect.x);
 				rect.height = std::min(rect.height, tempSize.height-rect.y);
 
-				rectangle( image, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), GREEN, 2);
-				rectangle( superImage, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), GREEN, 2);
+				rectangle( image, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT, 2);
+				rectangle( superImage, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT, 2);
 				rects.push_back(rect);
 
 			}else if((flags & KEY_SHIFT) != 0)	//shift+left
@@ -381,36 +381,100 @@ void GCApplication::mask2SPMask()
 		int f = carts[i][GC_FGD];
 		int b = carts[i][GC_BGD];
 
-		if(pb > 0) SPMask[i] = GC_PR_BGD;
-		if(pf > 0) SPMask[i] = GC_PR_FGD;
-		if(b > 0) SPMask[i] = GC_BGD;
-		if(f > 0) SPMask[i] = GC_FGD;
+		if(f > 0 || b > 0)
+		{
+			if(f >= b) SPMask[i] = GC_FGD;
+			else SPMask[i] = GC_BGD;
+		}else
+		{
+			if(pf >= pb) SPMask[i] = GC_PR_FGD;
+			else SPMask[i] = GC_PR_BGD;
+		}
 
-		//if(f+b > pf+pb)
-		//{
-		//	if(f+pf > b+pb)
-		//		SPMask[i] = GC_FGD;
-		//	else 
-		//		SPMask[i] = GC_BGD;
-		//}else
-		//{
-		//	if(f+pf > b+pb)
-		//		SPMask[i] = GC_PR_FGD;
-		//	else 
-		//		SPMask[i] = GC_PR_BGD;
-		//}
 	}
 
 }
 
+void GCApplication::dyeInvalidRegion()
+{
+	int width = image.cols;
+	int height = image.rows;
+	
+	Mat dyeMask;
+	dyeMask.create( image.size(), CV_8UC1);
+	dyeMask.setTo(Scalar::all(0));
+
+	if(width % 2 != 0 && height % 2 != 0)
+	{
+		Point point((int)(width+1)/2, (int)(height+1)/2);
+		int dyeRadius = point.x;
+		circle( dyeMask, point, dyeRadius, 1, thickness );
+	}else
+	{
+
+		Point pointLU( (int)(width-1)/2, (int)(height-1)/2  );		//left + up
+		Point pointRU( (int)(width+1)/2, (int)(height-1)/2  );		//right + up
+		Point pointLD( (int)(width-1)/2, (int)(height+1)/2  );		//left + down
+		Point pointRD( (int)(width+1)/2, (int)(height+1)/2  );		//right + down
+
+		int dyeRadius = pointLU.x;
+		circle( dyeMask, pointLU, dyeRadius, 1, thickness );
+		circle( dyeMask, pointRU, dyeRadius, 1, thickness );
+		circle( dyeMask, pointLD, dyeRadius, 1, thickness );
+		circle( dyeMask, pointRD, dyeRadius, 1, thickness );
+	}
+
+	//Mat binMask;
+	//getBinMask( dyeMask, binMask );
+
+	Mat res;
+	res.create(image.size(), image.type());
+	res.setTo(255);				//设置空白区域颜色
+	
+	image.copyTo( res, dyeMask );		//清除圆外区域
 
 
-void GCApplication::superpixelSegmentation(int _step)
+
+	//设置一圈黑色圆形边界
+	if(width % 2 != 0 && height % 2 != 0)
+	{
+		Point point((int)(width+1)/2, (int)(height+1)/2);
+		int dyeRadius = point.x;
+		circle( res, point, dyeRadius, 0, 1 );
+	}else
+	{
+
+		Point pointLU( (int)(width-1)/2, (int)(height-1)/2  );		//left + up
+		Point pointRU( (int)(width+1)/2, (int)(height-1)/2  );		//right + up
+		Point pointLD( (int)(width-1)/2, (int)(height+1)/2  );		//left + down
+		Point pointRD( (int)(width+1)/2, (int)(height+1)/2  );		//right + down
+
+		int dyeRadius = pointLU.x;
+		circle( res, pointLU, dyeRadius, 0, 1 );
+		circle( res, pointRU, dyeRadius, 0, 1 );
+		circle( res, pointLD, dyeRadius, 0, 1 );
+		circle( res, pointRD, dyeRadius, 0, 1 );
+	}
+
+
+
+	image = res.clone();
+	originImage = image.clone();
+	superImage = image.clone();
+	originSuperImage = image.clone();
+
+}
+
+
+int GCApplication::superpixelSegmentation(int _step)
 {
 	slico.DoSuperpixelSegmentation_ForGivenMat(image, pixelLabels, kindOfLabels, _step);
 	slico.GetArcAndCenterOfSuperpixels(superImage, pixelLabels, kindOfLabels, arcs, centers, contains);
 	slico.DrawContoursAroundSegments(superImage, pixelLabels, WHITE);
 	SPMask.resize(kindOfLabels, GC_PR_FGD);
 	originSuperImage = superImage.clone();
+	return kindOfLabels;
 }
+
+
 

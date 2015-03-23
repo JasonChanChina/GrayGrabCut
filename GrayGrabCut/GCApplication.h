@@ -32,7 +32,10 @@ public:
 	void SPMask2Mask();
 	void mask2SPMask();
 
-	void superpixelSegmentation(int _step);
+	int superpixelSegmentation(int _step);
+
+	
+	void dyeInvalidRegion();
 
 	
 
