@@ -51,18 +51,7 @@ int main()
 	cin>>filename;
 	cout<<"======================================="<<endl;
 	help();
-    //if( argc!=2 )
-    //{
-    //    help();
-    //    return 1;
-    //}
-    //string filename = argv[1];
-    //if( filename.empty() )
-    //{
-    //    cout << "\nDurn, couldn't read in " << argv[1] << endl;
-    //    return 1;
-    //}
-	//filename = "test.jpg";
+
     //Mat image = imread( filename, 1);		//RGB
 	Mat grayImage=imread(filename,0);		//Gray
 
@@ -100,10 +89,16 @@ int main()
 		}else if(c == 's')//superpixels
 		{
 			cout << ">superpixels start" << endl;
-	
-			gcapp.superpixelSegmentation();
+			
+			double timeBegin = (double)getTickCount();
 
+			gcapp.superpixelSegmentation();
 			gcapp.showSuperImage();
+
+			double timeEnd = (double)getTickCount();
+			double timeDelay = (timeEnd - timeBegin)/getTickFrequency();
+			cout<<"time:"<<timeDelay<<endl;
+
 
 			cout << ">superpixels end" << endl;
 
@@ -112,7 +107,14 @@ int main()
 			cout << ">pixel cut start" << endl;
 			iterCount = gcapp.getIterCount();
 			cout << "<" << iterCount << "... ";
+
+			double timeBegin = (double)getTickCount();
+
 			newIterCount = gcapp.nextIter();
+
+			double timeEnd = (double)getTickCount();
+			double timeDelay = (timeEnd - timeBegin)/getTickFrequency();
+			cout<<"time:"<<timeDelay<<endl;
 
 			gcapp.clearMarkInImage();
 			gcapp.show();
@@ -125,7 +127,14 @@ int main()
 			iterCount = gcapp.getIterCount();
 			cout << "<" << iterCount << "... ";
 
+
+			double timeBegin = (double)getTickCount();
+
 			newIterCount = gcapp.nextSuperIter();
+
+			double timeEnd = (double)getTickCount();
+			double timeDelay = (timeEnd - timeBegin)/getTickFrequency();
+			cout<<"time:"<<timeDelay<<endl;
 
 			gcapp.clearMarkInImage();
 			gcapp.show();
