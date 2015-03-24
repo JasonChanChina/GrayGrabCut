@@ -16,6 +16,7 @@ static void help()
         "\nHot keys: \n"
         "\tESC - quit the program\n"
         "\tr - restore the original image\n"
+		"\tp - clear invalid region\n"
         "\tn - next iteration\n"
         "\n"
         "\tleft mouse button - set rectangle\n"
@@ -60,17 +61,20 @@ public:
     static const int thickness = -1;
 
     void reset();
-    void setImageAndWinName( const Mat& _image, const string& _winName );
+    void setImageAndWinName(Mat& _image, const string& _winName );
     void showImage() const;
     void mouseClick( int event, int x, int y, int flags, void* param );
     int nextIter();
     int getIterCount() const { return iterCount; }
+
+	void dyeInvalidRegion();
+
 private:
     void setRectInMask();
     void setLblsInMask( int flags, Point p, bool isPr );
 
     const string* winName;
-    const Mat* image;
+    Mat* image;
     Mat mask;
     Mat bgdModel, fgdModel;
 
@@ -97,7 +101,7 @@ void GCApplication::reset()
     iterCount = 0;
 }
 
-void GCApplication::setImageAndWinName( const Mat& _image, const string& _winName  )
+void GCApplication::setImageAndWinName( Mat& _image, const string& _winName  )
 {
     if( _image.empty() || _winName.empty() )
         return;
@@ -297,6 +301,77 @@ int GCApplication::nextIter()
     return iterCount;
 }
 
+
+void GCApplication::dyeInvalidRegion()
+{
+	int width = image->cols;
+	int height = image->rows;
+	
+
+	Mat dyeMask;	//binMask
+	dyeMask.create( image->size(), CV_8UC1);
+	dyeMask.setTo(Scalar::all(0));
+
+	if(width % 2 != 0 && height % 2 != 0)
+	{
+		Point point((int)(width+1)/2, (int)(height+1)/2);
+		int dyeRadius = point.x;
+		circle( dyeMask, point, dyeRadius, 1, thickness );
+	}else
+	{
+
+		Point pointLU( (int)(width-1)/2, (int)(height-1)/2  );		//left + up
+		Point pointRU( (int)(width+1)/2, (int)(height-1)/2  );		//right + up
+		Point pointLD( (int)(width-1)/2, (int)(height+1)/2  );		//left + down
+		Point pointRD( (int)(width+1)/2, (int)(height+1)/2  );		//right + down
+
+		int dyeRadius = pointLU.x;
+		circle( dyeMask, pointLU, dyeRadius, 1, thickness );
+		circle( dyeMask, pointRU, dyeRadius, 1, thickness );
+		circle( dyeMask, pointLD, dyeRadius, 1, thickness );
+		circle( dyeMask, pointRD, dyeRadius, 1, thickness );
+	}
+
+	//Mat binMask;
+	//getBinMask( dyeMask, binMask );
+	Mat imageClone = image->clone();
+	image->setTo(Vec3b(255,255,255));
+
+	//Mat res;
+	//res.create(image->size(), image->type());
+	//res.setTo(Vec3b(255,255,255));				//设置空白区域颜色
+	
+	imageClone.copyTo( *image, dyeMask );		//清除圆外区域
+
+
+
+	//设置一圈黑色圆形边界
+	if(width % 2 != 0 && height % 2 != 0)
+	{
+		Point point((int)(width+1)/2, (int)(height+1)/2);
+		int dyeRadius = point.x;
+		circle( *image, point, dyeRadius, Scalar(0,0,0), 1 );
+	}else
+	{
+
+		Point pointLU( (int)(width-1)/2, (int)(height-1)/2  );		//left + up
+		Point pointRU( (int)(width+1)/2, (int)(height-1)/2  );		//right + up
+		Point pointLD( (int)(width-1)/2, (int)(height+1)/2  );		//left + down
+		Point pointRD( (int)(width+1)/2, (int)(height+1)/2  );		//right + down
+
+		int dyeRadius = pointLU.x;
+		circle( *image, pointLU, dyeRadius, Scalar(0,0,0), 1 );
+		circle( *image, pointRU, dyeRadius, Scalar(0,0,0), 1 );
+		circle( *image, pointLD, dyeRadius, Scalar(0,0,0), 1 );
+		circle( *image, pointRD, dyeRadius, Scalar(0,0,0), 1 );
+	}
+
+
+
+
+}
+
+
 GCApplication gcapp;
 
 static void on_mouse( int event, int x, int y, int flags, void* param )
@@ -341,6 +416,11 @@ int main()
             gcapp.reset();
             gcapp.showImage();
             break;
+		case 'p':
+			gcapp.dyeInvalidRegion();
+			cout<<"clear invalid region"<<endl;
+			gcapp.showImage();
+			break;
         case 'n':
             int iterCount = gcapp.getIterCount();
             cout << "<" << iterCount << "... ";
