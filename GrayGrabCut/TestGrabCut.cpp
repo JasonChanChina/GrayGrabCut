@@ -36,6 +36,13 @@ const Scalar GREEN = Scalar(0,255,0);
 const int BGD_KEY = CV_EVENT_FLAG_CTRLKEY;
 const int FGD_KEY = CV_EVENT_FLAG_SHIFTKEY;
 
+const Scalar COLOR_RECT = Scalar(255,255,255);
+const Scalar COLOR_FGD = Scalar(128,128,128);
+const Scalar COLOR_BGD = Scalar(0,0,0);
+const Scalar COLOR_PR_FGD = Scalar(192,192,192);
+const Scalar COLOR_PR_BGD = Scalar(64,64,64);
+
+
 static void getBinMask( const Mat& comMask, Mat& binMask )
 {
     if( comMask.empty() || comMask.type()!=CV_8UC1 )
@@ -121,16 +128,16 @@ void GCApplication::showImage() const
 
     vector<Point>::const_iterator it;
     for( it = bgdPxls.begin(); it != bgdPxls.end(); ++it )
-        circle( res, *it, radius, BLUE, thickness );
+        circle( res, *it, radius, COLOR_BGD, thickness );
     for( it = fgdPxls.begin(); it != fgdPxls.end(); ++it )
-        circle( res, *it, radius, RED, thickness );
+        circle( res, *it, radius, COLOR_FGD, thickness );
     for( it = prBgdPxls.begin(); it != prBgdPxls.end(); ++it )
-        circle( res, *it, radius, LIGHTBLUE, thickness );
+        circle( res, *it, radius, COLOR_PR_BGD, thickness );
     for( it = prFgdPxls.begin(); it != prFgdPxls.end(); ++it )
-        circle( res, *it, radius, PINK, thickness );
+        circle( res, *it, radius, COLOR_PR_FGD, thickness );
 
-    //if( rectState == IN_PROCESS || rectState == SET )
-        //rectangle( res, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), GREEN, 2);
+    if( rectState == IN_PROCESS || rectState == SET )
+        rectangle( res, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT, 2);
 
     imshow( *winName, res );
 	string path = "D:\\aa_";
@@ -213,7 +220,7 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
             rect = Rect( Point(rect.x, rect.y), Point(x,y) );
 
 			/////////////
-			rect = Rect(29,62,262,417);
+			//rect = Rect(29,62,262,417);
 
 
 			cout<<rect.x<<","<<rect.y<<","<<rect.width<<","<<rect.height<<endl;
@@ -297,20 +304,14 @@ static void on_mouse( int event, int x, int y, int flags, void* param )
     gcapp.mouseClick( event, x, y, flags, param );
 }
 
-int main( int argc, char** argv )
+int main()
 {
-    if( argc!=2 )
-    {
-        help();
-        return 1;
-    }
-    string filename = argv[1];
-    if( filename.empty() )
-    {
-        cout << "\nDurn, couldn't read in " << argv[1] << endl;
-        return 1;
-    }
-	filename = "test.jpg";
+
+	string filename;// = "test.jpg";
+	cout<<"input your image name : ";
+	cin>>filename;
+
+
     Mat image = imread( filename, 1);
     if( image.empty() )
     {
