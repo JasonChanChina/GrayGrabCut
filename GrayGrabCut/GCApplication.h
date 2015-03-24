@@ -41,6 +41,7 @@ public:
 
 private:
     void setCircleInMask( int flags, Point p, bool isPr );
+	int countValidSuperpixels();
 
     string winName;
 	string superName;

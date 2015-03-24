@@ -465,6 +465,43 @@ void GCApplication::dyeInvalidRegion()
 
 }
 
+int GCApplication::countValidSuperpixels()
+{
+	int width = image.cols;
+	int height = image.rows;
+
+	Point points[4];
+	int dy[4] = {-1, 1, -1, 1};
+	int dx[4] = {1,1,-1,-1};
+	for(int i = 0; i < 4; i++)			//left + up		//right + up	//left + down	//right + down
+	{
+		points[i].x = (int)(width+dx[i])/2;
+		points[i].y = (int)(height+dy[i])/2;
+	}
+
+	Point p;
+	int whiteCount = 0;
+	for(int i = 0; i < contains.size(); i++)
+	{
+		for(int j = 0; j < contains[i].size(); j++)
+		{
+			p.y = contains[i][j] / mask.cols;
+			p.x = contains[i][j] % mask.cols;
+			for(int k = 0; k < 4; k++)
+			{
+				if( (p.x - points[k].x) * (p.x - points[k].x) + (p.y - points[k].y)*(p.y - points[k].y) > (width/2)*(height/2))		//大于圆范围
+				{
+					whiteCount++;
+					goto outRegion;		//为了跳出深层循环
+				}
+			}
+
+		}
+outRegion:
+		int f = i+1;
+	}
+	return whiteCount;
+}
 
 int GCApplication::superpixelSegmentation(int _step)
 {
@@ -473,7 +510,10 @@ int GCApplication::superpixelSegmentation(int _step)
 	slico.DrawContoursAroundSegments(superImage, pixelLabels, WHITE);
 	SPMask.resize(kindOfLabels, GC_PR_FGD);
 	originSuperImage = superImage.clone();
-	return kindOfLabels;
+
+	int count = countValidSuperpixels();
+
+	return kindOfLabels-count;
 }
 
 
