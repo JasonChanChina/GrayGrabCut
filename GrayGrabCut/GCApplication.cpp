@@ -8,7 +8,8 @@ const Scalar GREEN = Scalar(0,255,0);
 const Scalar WHITE = Scalar(255,255,255);
 const Scalar BLACK = Scalar(0,0,0);
 
-const Scalar COLOR_RECT = Scalar(255,0,0);	//灰度图像只用到了第一分量，即255=白
+const Scalar COLOR_RECT_FORE = Scalar(255,0,0);	//灰度图像只用到了第一分量，即255=白
+const Scalar COLOR_RECT_BACK = Scalar(0,0,0);//灰度图像只用到了第一分量，即0=黑
 const Scalar COLOR_FGD = Scalar(128,0,0);
 const Scalar COLOR_BGD = Scalar(0,0,0);
 const Scalar COLOR_PR_FGD = Scalar(192,0,0);
@@ -145,8 +146,9 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
 				rect.width = std::min(rect.width, tempSize.width-rect.x);
 				rect.height = std::min(rect.height, tempSize.height-rect.y);
 
-				rectangle( image, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT, 2);
-				rectangle( superImage, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT, 2);
+				rectangle( image, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT_FORE, 2);
+				rectangle( superImage, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT_FORE, 2);
+
 				rects.push_back(rect);
 
 			}else if((flags & KEY_SHIFT) != 0)	//shift+left
@@ -161,6 +163,22 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
 				//circle( mask, temp, radius, GC_FGD, thickness );
 				circle( image, temp, radius, COLOR_FGD, thickness );
 				circle( superImage, temp, radius, COLOR_FGD, thickness );
+			}else{		//无控制键，纯鼠标
+				Rect rect;
+				rect.x = std::min(beginPoint.x, endPoint.x);
+				rect.y = std::min(beginPoint.y, endPoint.y);
+				rect.width = std::abs(beginPoint.x - endPoint.x);
+				rect.height = std::abs(beginPoint.y - endPoint.y);
+
+				Size tempSize = image.size();
+
+				rect.x = std::max(0, rect.x);
+				rect.y = std::max(0, rect.y);
+				rect.width = std::min(rect.width, tempSize.width-rect.x);
+				rect.height = std::min(rect.height, tempSize.height-rect.y);
+				RotatedRect rRect = RotatedRect(Point(rect.x+rect.width/2, rect.y+rect.height/2), rect.size(), 0);
+				ellipse(image, rRect, COLOR_RECT_FORE, 2);
+				ellipse(superImage, rRect, COLOR_RECT_FORE, 2);
 			}
 
 			show();
@@ -174,7 +192,23 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
 			Point temp(endPoint);
 			if((flags & KEY_CTRL) != 0)		//ctrl+right
 			{
+				Rect rect;
+				rect.x = std::min(beginPoint.x, endPoint.x);
+				rect.y = std::min(beginPoint.y, endPoint.y);
+				rect.width = std::abs(beginPoint.x - endPoint.x);
+				rect.height = std::abs(beginPoint.y - endPoint.y);
 
+				Size tempSize = image.size();
+
+				rect.x = std::max(0, rect.x);
+				rect.y = std::max(0, rect.y);
+				rect.width = std::min(rect.width, tempSize.width-rect.x);
+				rect.height = std::min(rect.height, tempSize.height-rect.y);
+
+				rectangle( image, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT_BACK, 2);
+				rectangle( superImage, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), COLOR_RECT_BACK, 2);
+
+				rects.push_back(rect);
 			}else if((flags & KEY_SHIFT) != 0)	//shift+right
 			{
 				prBgdPxls.push_back(temp);
@@ -187,6 +221,22 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
 				//circle( mask, temp, radius, GC_BGD, thickness );
 				circle( image, temp, radius, COLOR_BGD, thickness );
 				circle( superImage, temp, radius, COLOR_BGD, thickness );
+			}else{	//无控制键，纯鼠标
+				Rect rect;
+				rect.x = std::min(beginPoint.x, endPoint.x);
+				rect.y = std::min(beginPoint.y, endPoint.y);
+				rect.width = std::abs(beginPoint.x - endPoint.x);
+				rect.height = std::abs(beginPoint.y - endPoint.y);
+
+				Size tempSize = image.size();
+
+				rect.x = std::max(0, rect.x);
+				rect.y = std::max(0, rect.y);
+				rect.width = std::min(rect.width, tempSize.width-rect.x);
+				rect.height = std::min(rect.height, tempSize.height-rect.y);
+				RotatedRect rRect = RotatedRect(Point(rect.x+rect.width/2, rect.y+rect.height/2), rect.size(), 0);
+				ellipse(image, rRect, COLOR_RECT_BACK, 2);
+				ellipse(superImage, rRect, COLOR_RECT_BACK, 2);
 			}
 
 			show();
