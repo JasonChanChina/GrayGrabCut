@@ -71,4 +71,33 @@ void Histogram::createSuperHist(vector<Vec3d>& centers, vector<vector<int> >& co
 double Histogram::probability(const uchar gray) const
 {
 	return hist.at<float>(gray);
+
+	////直方图概率改进
+	//// 假设：
+	////领域： -2   -1  0   +1  +2
+	////概率： 0.1 0.2 0.4 0.2 0.1
+
+	//vector<double> histPro(5, 0);
+	//histPro[0] = 0.1;
+	//histPro[1] = 0.2;
+	//histPro[2] = 0.4;
+	//histPro[3] = 0.2;
+	//histPro[4] = 0.1;
+
+	//int start = gray - 2;
+	//int end = gray + 3;
+	//double pro = 0;
+	//int j = 0;
+	//for(int i = start; i < end; i++)
+	//{
+	//	if(i >= 0 && i <= 255)
+	//	{
+	//		pro += histPro[j]*hist.at<float>(i);
+	//	}
+	//	j++;
+	//}
+
+	//return pro;
+
+
 }
